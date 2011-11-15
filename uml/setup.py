@@ -93,3 +93,6 @@ if full == 1:
 	os.system("bunzip2 fs_server.bz2")
 
 	os.system("wget http://192.135.168.249/data/uml/README")
+
+print "========================================================================"
+print "FINISHED"
