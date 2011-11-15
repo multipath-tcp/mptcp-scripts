@@ -1,0 +1,18 @@
+How to use?
+
+
+Just execute "./client.sh" and "./server.sh" in separate terminals.
+The virtual machines will start and you can play around with them.
+
+
+The IP-Addresses of each virtual machine are:
+client: eth0 - 10.1.1.2 , eth1 - 10.1.2.2
+server: eth0 - 10.2.1.2
+
+Login/Password of both machines is root/root
+
+Both virtual machines have ssh/scp, iperf, lighttpd installed.
+Public/Private keys for ssh-authentication are already setup.
+
+The network interfaces are properly configured upon the boot by /etc/network/interfaces
+
