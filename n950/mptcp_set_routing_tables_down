@@ -1,0 +1,16 @@
+#!/bin/sh
+# A script for setting up routing tables for MPTCP in the N950.
+
+set -e
+
+echo "$ICD_CONNECTION_TYPE" > /etc/network/ctype
+
+if [ "$IFACE" = lo -o "$MODE" != stop ]; then
+        exit 0
+fi
+
+if [ "$ICD_CONNECTION_TYPE" = GPRS ]; then
+	/bin/ip rule del table 5
+elif [ "$ICD_CONNECTION_TYPE" = WLAN_INFRA ]; then
+	/bin/ip rule del table 4
+fi
