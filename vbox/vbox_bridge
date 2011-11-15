@@ -1,0 +1,13 @@
+#!/bin/bash
+ 
+# Enable IP forwarding
+sudo sysctl net.ipv4.ip_forward=1
+ 
+# Create a TAP as your current logged in user (replace with -u YOUR-USER-NAME if you want...)
+sudo tunctl -u $USER
+ 
+# Give your TAP (tap0) an IP address and enable it (make sure the IP address is OUTSIDE the DHCP range on your router)
+sudo ip addr add 192.168.1.150/24 dev tap0
+sudo ip link set tap0 up
+ 
+sudo iptables -t nat -A POSTROUTING -s 192.168.1.1 -j MASQUERADE
