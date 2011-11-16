@@ -5,6 +5,8 @@
 # arg_1 : kernel-version
 # arg_2 : date
 
+set -e
+
 kernel_version=$1
 DATE=$2
 
