@@ -6,7 +6,7 @@ trap "mutt -s \"$0 crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/$0.
 
 cd $HOME
 
-if [ -f *.deb ] ;
+if [ -e *.deb ] ;
 then
 	rm *.deb
 fi
@@ -18,7 +18,7 @@ git pull
 
 DATE=`date +%Y%m%d`
 export CONCURRENCY_LEVEL=3
-fakeroot make-kpkg --initrd -j 2 --revision $DATE kernel-image kernel-headers kernel-source
+fakeroot make-kpkg --initrd -j 2 --revision $DATE kernel-image kernel-headers
 kernel_version=`ls debian/linux-image-*/lib/modules/`
 
 cd $HOME
