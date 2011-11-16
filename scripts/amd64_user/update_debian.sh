@@ -6,7 +6,8 @@ trap "mutt -s \"$0 crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/$0.
 
 cd $HOME
 
-if [ -e *.deb ] ;
+files=$(ls *.deb 2> /dev/null | wc -l)
+if [ "$files" != "0" ] 
 then
 	rm *.deb
 fi
