@@ -6,5 +6,8 @@ trap "mutt -s \"$0 crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/$0.
 
 cd $HOME/mtcp/
 git pull
-gitstats -c commit_begin=v3.0 -c project_name=MPTCP . ../mptcp_stats/
+
+tag=`git describe --abbrev=0`
+
+gitstats -c commit_begin=$tag -c project_name=MPTCP . ../mptcp_stats/
 
