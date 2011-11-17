@@ -13,7 +13,7 @@ git pull
 
 DATE=`date +%Y%m%d`
 export CONCURRENCY_LEVEL=3
-make-kpkg --initrd -j 2 --revision $DATE kernel-image kernel-headers
+make-kpkg --initrd -j 2 --revision $DATE kernel_image kernel_headers kernel_debug
 
 # Install new kernel on host-machine
 
@@ -31,6 +31,7 @@ fi
 cd ..
 
 dpkg-sig --sign builder linux-headers-${kernel_version}_${DATE}_i386.deb
+dpkg-sig --sign builder linux-debug-${kernel_version}_${DATE}_i386.deb
 dpkg-sig --sign builder linux-image-${kernel_version}_${DATE}_i386.deb
 
 mv *.deb /var/www/repos/apt/debian/
@@ -38,6 +39,7 @@ mv *.deb /var/www/repos/apt/debian/
 cd /var/www/repos/apt/debian/
 
 reprepro includedeb squeeze linux-headers-${kernel_version}_${DATE}_i386.deb
+reprepro includedeb squeeze linux-debug-${kernel_version}_${DATE}_i386.deb
 reprepro includedeb squeeze linux-image-${kernel_version}_${DATE}_i386.deb
 
 rm *.deb
