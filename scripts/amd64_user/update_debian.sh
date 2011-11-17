@@ -4,7 +4,7 @@
 file=`basename $0`
 trap "mutt -s \"$file crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/${file}.log; exit 1" ERR
 
-cd $HOME
+cd /usr/src
 
 files=$(ls *.deb 2> /dev/null | wc -l)
 if [ "$files" != "0" ] 
@@ -12,9 +12,8 @@ then
 	rm *.deb
 fi
 
-cd $HOME/mptcp
+cd /usr/src/mptcp
 
-git checkout mptcp_trunk_3.0.x
 git pull
 
 DATE=`date +%Y%m%d`
@@ -22,10 +21,10 @@ export CONCURRENCY_LEVEL=3
 fakeroot make-kpkg --initrd -j 2 --revision $DATE kernel_image kernel_headers kernel_debug kernel_source
 kernel_version=`ls debian/linux-image-*/lib/modules/`
 
-cd $HOME
-scp -C *.deb root@mptcp.info.ucl.ac.be:/tmp/
+cd /usr/src
+scp *.deb root@mptcp.info.ucl.ac.be:/tmp/
 
-scp -C bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
+scp /root/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
 
 ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh $kernel_version $DATE"
 

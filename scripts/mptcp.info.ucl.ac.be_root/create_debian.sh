@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# DEPRECATED NO MORE IN USE
+
 # Create and update the debian-repos
 file=`basename $0`                                                                                                                                                                                                               
 trap "mutt -s \"$file crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/${file}.log; exit 1" ERR                                                                                                                         
