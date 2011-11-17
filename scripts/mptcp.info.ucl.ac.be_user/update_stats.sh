@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Update the git-stats on the webserver at mptcp.info.ucl.ac.be/mptcp_stats/
-
-trap "mutt -s \"$0 crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/$0.log; exit 1" ERR
+file=`basename $0`                                                                                                                                                                                                               
+trap "mutt -s \"$file crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/${file}.log; exit 1" ERR                                                                                                                         
 
 cd $HOME/mtcp/
 git pull
