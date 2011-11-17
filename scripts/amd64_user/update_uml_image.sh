@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -e
+file=`basename $0`                                                                                                                                                                                                               
+trap "mutt -s \"$file crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/${file}.log; exit 1" ERR                                                                                                                         
 
 cd $HOME/uml/mptcp
 git checkout mptcp_trunk
