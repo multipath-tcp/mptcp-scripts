@@ -15,7 +15,7 @@ make
 make install modules_install
 # Install new kernel on host-machine
 
-if [ -f /boot/initrd.img-${kernel_version} ];
+if [ -f /boot/initrd.img-${kernel_version} ]
 then
 	update-initramfs -u -k $kernel_version
 else
