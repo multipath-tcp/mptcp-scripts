@@ -19,7 +19,7 @@ git pull
 
 DATE=`date +%Y%m%d`
 export CONCURRENCY_LEVEL=3
-fakeroot make-kpkg --initrd -j 2 --revision $DATE kernel_image kernel_headers kernel_debug
+fakeroot make-kpkg --initrd -j 2 --revision $DATE kernel_image kernel_headers kernel_debug kernel_source
 kernel_version=`ls debian/linux-image-*/lib/modules/`
 
 cd $HOME

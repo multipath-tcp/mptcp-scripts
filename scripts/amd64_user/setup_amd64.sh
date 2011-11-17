@@ -15,6 +15,7 @@ cd /tmp/
 dpkg-sig --sign builder linux-headers-${kernel_version}_${DATE}_amd64.deb
 dpkg-sig --sign builder linux-image-${kernel_version}-dbg_${DATE}_amd64.deb
 dpkg-sig --sign builder linux-image-${kernel_version}_${DATE}_amd64.deb
+dpkg-sig --sign builder linux-source-${kernel_version}_${DATE}_amd64.deb
 
 mv *.deb /var/www/repos/apt/debian/
 
@@ -23,6 +24,7 @@ cd /var/www/repos/apt/debian/
 reprepro includedeb squeeze linux-headers-${kernel_version}_${DATE}_amd64.deb
 reprepro includedeb squeeze linux-image-${kernel_version}-dbg_${DATE}_amd64.deb
 reprepro includedeb squeeze linux-image-${kernel_version}_${DATE}_amd64.deb
+reprepro includedeb squeeze linux-source-${kernel_version}_${DATE}_amd64.deb
 
 rm *.deb
 
