@@ -17,9 +17,9 @@ make install modules_install
 
 if [ -f /boot/initrd.img-${kernel_version} ]
 then
-	update-initramfs -u -k $kernel_version
+	/usr/sbin/update-initramfs -u -k $kernel_version
 else
-	update-initramfs -c -k $kernel_version
+	/usr/sbin/update-initramfs -c -k $kernel_version
 fi
 
 # Reboot
