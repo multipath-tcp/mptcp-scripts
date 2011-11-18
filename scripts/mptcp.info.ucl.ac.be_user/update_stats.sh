@@ -9,5 +9,5 @@ git pull
 
 tag=`git describe --abbrev=0`
 
-gitstats -c commit_begin=$tag -c project_name=MPTCP . ../mptcp_stats/
+$HOME/bin/gitstats -c commit_begin=$tag -c project_name=MPTCP . ../mptcp_stats/
 
