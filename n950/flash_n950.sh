@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+trap "echo 'ERROR occured - contact mptcp-dev@listes.uclouvain.be' ; exit 1" ERR
 
 # FIRST, extract the ape-algo from the OneClickFlasher
 
@@ -22,13 +22,18 @@ scp modules.tar developer@$N950:
 scp n950_insmod.sh developer@$N950:
 ssh developer@$N950 "chmod a+x ./n950_insmod.sh"
 
-echo "Now installing the modules - type in the default-password 'rootme'"
+echo "=========================================================="
+echo "Now installing the modules."
+echo "First type your developer-password."
+echo "Then type in the default root-password 'rootme'"
 
 ssh developer@$N950 "devel-su root /home/developer/n950_insmod.sh" 
 
 ssh developer@$N950 rm ./n950_insmod.sh
 ssh developer@$N950 rm ./modules.tar
 
+echo "=========================================================="
+echo "Now, you may get prompted for your host's password to access sudo"
 sudo flasher -f -a ./extract_flash/img.bin -k zImage 
 
 rm -Rf $EXTRACT

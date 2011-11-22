@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+trap "echo 'ERROR occured - contact mptcp-dev@listes.uclouvain.be' ; exit 1" ERR
 
 # FIRST, extract the ape-algo from the OneClickFlasher
 

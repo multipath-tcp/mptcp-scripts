@@ -1,16 +1,17 @@
 #!/bin/bash
 # This script installs opera browser on the Nokia N950 device
 
-set -e
+trap "echo 'ERROR occured - contact mptcp-dev@listes.uclouvain.be' ; exit 1" ERR
 
-wget -N http://mptcp.info.ucl.ac.be/data/n950/operamobile_11.00-1_armel.deb
+echo "When asked for the developer-password type in the one you configured"
+
+#wget -N http://mptcp.info.ucl.ac.be/data/n950/operamobile_11.00-1_armel.deb
 
 scp operamobile_11.00-1_armel.deb developer@192.168.2.15:
 echo "Type the root password of the device (default: rootme):"
-ssh developer@192.168.2.15 "devel-su root -c '/usr/bin/dpkg -i /home/developer/operamobile_11.00-1_armel.deb'"
+ssh developer@192.168.2.15 "devel-su root -c '/usr/bin/dpkg -i /home/developer/operamobile_11.00-1_armel.deb' ; rm operamobile_11.00-1_armel.deb"
 
-rm operamobile_11.00-1_armel.deb
-ssh developer@192.168.2.15 "rm operamobile_11.00-1_armel.deb"
+#rm operamobile_11.00-1_armel.deb
 
 if [ $(ssh developer@192.168.2.15 "cat /home/user/.config/operamobile/opera.ini |grep Proxy" | wc -l) != 0 ]
 then
@@ -44,6 +45,8 @@ do
 
 	read -p "Setting $proxy:$port as proxy. Is this correct? [y/n]:" response
 done
+
+read -p "Now, please start the opera-browser on your device and 'Accept' the license-agreement. When done, hit enter" response
 
 ssh developer@192.168.2.15 "echo -e \"\n[Proxy]\nHTTP server=$proxy:$port\nUse HTTP=1\" >> /home/user/.config/operamobile/opera.ini"
 
