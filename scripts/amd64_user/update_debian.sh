@@ -16,9 +16,9 @@ cd /usr/src/mptcp
 
 git pull
 
-DATE=`date +%Y%m%d%H`
 export CONCURRENCY_LEVEL=3
-fakeroot make-kpkg --initrd -j 2 --revision $DATE kernel_image kernel_headers
+#skipdbg=false skipabi=true skipmodule=true fakeroot debian/rules binary-indep
+skipabi=true skipmodule=true fakeroot debian/rules binary-mptcp
 kernel_version=`ls debian/linux-image-*/lib/modules/`
 
 cd /usr/src
@@ -26,7 +26,7 @@ scp *.deb root@mptcp.info.ucl.ac.be:/tmp/
 
 scp /root/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
 
-ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh $kernel_version $DATE"
+ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh $kernel_version"
 
 ssh root@mptcp.info.ucl.ac.be "rm /tmp/setup_amd64.sh"
 

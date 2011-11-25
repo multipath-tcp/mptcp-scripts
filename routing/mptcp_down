@@ -1,0 +1,14 @@
+#!/bin/sh
+# A script for setting up routing tables for MPTCP in the N950.
+
+set -e
+
+env > /etc/network/ctype
+
+if [ "$IFACE" = lo -o "$MODE" != start ]; then
+        exit 0
+fi
+
+/bin/ip rule del table $DEVICE_IFACE
+/bin/ip route flush table $DEVICE_IFACE 
+

@@ -3,6 +3,8 @@
 
 set -e
 
+echo "$ICD_CONNECTION_TYPE" > /etc/network/ctype
+
 if [ "$IFACE" = lo -o "$MODE" != start ]; then
         exit 0
 fi
