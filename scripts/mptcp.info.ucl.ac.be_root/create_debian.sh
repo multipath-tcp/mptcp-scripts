@@ -40,7 +40,7 @@ ctrl="linux-mptcp/DEBIAN/control"
 touch $ctrl
 
 echo "Package: linux-mptcp" >> $ctrl
-echo "Version: ${version}" >> $ctrl
+echo "Version: ${DATE}" >> $ctrl
 echo "Section: main" >> $ctrl
 echo "Priority: optional" >> $ctrl
 echo "Architecture: all" >> $ctrl
