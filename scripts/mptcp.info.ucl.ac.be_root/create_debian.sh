@@ -15,7 +15,7 @@ git pull
 
 DATE=`date +%Y%m%d`
 export CONCURRENCY_LEVEL=3
-make-kpkg --initrd -j 2 --revision $DATE kernel_image kernel_headers kernel_debug
+make-kpkg --initrd -j 2 --revision $DATE kernel_image kernel_headers
 
 # Install new kernel on host-machine
 
@@ -28,21 +28,39 @@ else
 	update-initramfs -c -k $kernel_version
 fi
 
-# Update Debian-repositories
-
 cd ..
 
-dpkg-sig --sign builder linux-headers-${kernel_version}_${DATE}_i386.deb
-dpkg-sig --sign builder linux-image-${kernel_version}-dbg_${DATE}_i386.deb
-dpkg-sig --sign builder linux-image-${kernel_version}_${DATE}_i386.deb
+# Create meta-package
+rm -Rf linux-mptcp
+
+mkdir linux-mptcp
+mkdir linux-mptcp/DEBIAN
+chmod -R a-s linux-mptcp
+ctrl="linux-mptcp/DEBIAN/control"
+touch $ctrl
+
+echo "Package: linux-mptcp" >> $ctrl
+echo "Version: ${version}" >> $ctrl
+echo "Section: main" >> $ctrl
+echo "Priority: optional" >> $ctrl
+echo "Architecture: all" >> $ctrl
+echo "Depends: linux-headers-${kernel_version}, linux-image-${kernel_version}" >> $ctrl
+echo "Installed-Size:" >> $ctrl
+echo "Maintainer: Christoph Paasch" >> $ctrl
+echo "Description: A meta-package for linux-mptcp" >> $ctrl
+
+dpkg --build linux-mptcp
+mv linux-mptcp.deb linux-mptcp_${version}_all.deb
+
+
+# Update Debian-repositories
+dpkg-sig --sign builder *.deb
 
 mv *.deb /var/www/repos/apt/debian/
 
 cd /var/www/repos/apt/debian/
 
-reprepro includedeb squeeze linux-headers-${kernel_version}_${DATE}_i386.deb
-reprepro includedeb squeeze linux-image-${kernel_version}-dbg_${DATE}_i386.deb
-reprepro includedeb squeeze linux-image-${kernel_version}_${DATE}_i386.deb
+reprepro includedeb squeeze *.deb
 
 rm *.deb
 
