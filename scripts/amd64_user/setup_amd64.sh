@@ -14,7 +14,7 @@ cd /tmp/
 
 dpkg-sig --sign builder linux-*.deb
 
-rm /var/www/repos/apt/debian/*.deb
+rm -f /var/www/repos/apt/debian/*.deb
 
 mv *.deb /var/www/repos/apt/debian/
 
@@ -22,5 +22,5 @@ cd /var/www/repos/apt/debian/
 
 reprepro includedeb orneic linux-*.deb
 
-rm *.deb
+rm -f *.deb
 

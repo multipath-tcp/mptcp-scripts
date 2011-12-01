@@ -6,11 +6,7 @@ trap "mutt -s \"$file crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/
 
 cd /usr/src
 
-files=$(ls *.deb 2> /dev/null | wc -l)
-if [ "$files" != "0" ] 
-then
-	rm *.deb
-fi
+rm -f *.deb
 
 cd /usr/src/mptcp
 git pull
@@ -46,12 +42,12 @@ dpkg --build linux-mptcp
 mv linux-mptcp.deb linux-mptcp_${version}_all.deb
 
 # Install everything
-ssh root@mptcp.info.ucl.ac.be "rm /tmp/*.deb"
+ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/*.deb"
 scp *.deb root@mptcp.info.ucl.ac.be:/tmp/
 scp /root/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
 
 ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh"
-ssh root@mptcp.info.ucl.ac.be "rm /tmp/setup_amd64.sh"
+ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/setup_amd64.sh"
 
 rm *.deb
 
