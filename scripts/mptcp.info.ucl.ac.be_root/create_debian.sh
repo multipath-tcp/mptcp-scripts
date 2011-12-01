@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# DEPRECATED NO MORE IN USE
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # Create and update the debian-repos
 file=`basename $0`                                                                                                                                                                                                               
