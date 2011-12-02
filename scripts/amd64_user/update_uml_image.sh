@@ -12,4 +12,6 @@ make -j 2 O=../build_uml/ ARCH=um
 cd ..
 
 scp -C build_uml/vmlinux cpaasch@mptcp.info.ucl.ac.be:uml/vmlinux_64
+scp -C fs_client_64.bz2 fs_server_64.bz2 cpaasch@mptcp.info.ucl.ac.be:uml/
+
 
