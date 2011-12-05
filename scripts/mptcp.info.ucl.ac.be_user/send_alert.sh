@@ -8,3 +8,11 @@ then
 	rm $HOME/send_alert
 	mutt -s "mptcp.info.ucl.ac.be rebooted" -- christoph.paasch@uclouvain.be < $HOME/mail
 fi
+
+if [ -f $HOME/no_crontab ]
+then
+	rm $HOME/no_crontab
+else
+	mutt -s "mptcp.info.ucl.ac.be - crontab issue!!!" -- christoph.paasch@uclouvain.be < $HOME/mail
+fi
+
