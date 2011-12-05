@@ -6,3 +6,7 @@ trap "mutt -s \"$file crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/
 
 cd $HOME/mptcp_tools
 git pull
+
+cd $HOME/mptcp
+git pull
+
