@@ -11,7 +11,7 @@ git pull
 
 # Compile everything
 
-DATE=`date +%Y%m%d`
+DATE=`date +%Y%m%d%H`
 export CONCURRENCY_LEVEL=3
 fakeroot make-kpkg --initrd -j 2 --revision $DATE kernel_image kernel_headers
 
