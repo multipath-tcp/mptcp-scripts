@@ -13,7 +13,7 @@ git pull
 
 DATE=`date +%Y%m%d`
 export CONCURRENCY_LEVEL=3
-make-kpkg --initrd -j 2 --revision $DATE kernel_image kernel_headers
+fakeroot make-kpkg --initrd -j 2 --revision $DATE kernel_image kernel_headers
 
 # Create meta-package
 rm -Rf linux-mptcp
