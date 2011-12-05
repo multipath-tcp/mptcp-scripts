@@ -40,7 +40,7 @@ mv linux-mptcp.deb linux-mptcp_${version}_all.deb
 # Install everything
 ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/*.deb"
 scp *.deb root@mptcp.info.ucl.ac.be:/tmp/
-scp /root/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
+scp $HOME/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
 
 ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh"
 ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/setup_amd64.sh"
