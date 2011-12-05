@@ -52,6 +52,7 @@ echo "Description: A meta-package for linux-mptcp" >> $ctrl
 dpkg --build linux-mptcp
 mv linux-mptcp.deb linux-mptcp_${DATE}_all.deb
 
+rm -Rf linux-mptcp
 
 # Update Debian-repositories
 dpkg-sig --sign builder *.deb
