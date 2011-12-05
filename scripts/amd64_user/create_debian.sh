@@ -35,20 +35,20 @@ echo "Maintainer: Christoph Paasch" >> $ctrl
 echo "Description: A meta-package for linux-mptcp" >> $ctrl
 
 dpkg --build linux-mptcp
-mv linux-mptcp.deb linux-mptcp_${version}_all.deb
+mv linux-mptcp.deb linux-mptcp_${DATE}_all.deb
 
 # Install everything
 ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/*.deb"
 scp *.deb root@mptcp.info.ucl.ac.be:/tmp/
 scp $HOME/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
 
-ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh"
+ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh squeeze"
 ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/setup_amd64.sh"
 
 rm *.deb
 
 # Copy vmlinux-file
 cd $HOME/mptcp
-cp debian/build/build-mptcp/vmlinux $HOME/vmlinuxes/vmlinux_${kernel_version}_${version}
+cp vmlinux $HOME/vmlinuxes/vmlinux_${kernel_version}_${DATE}
 find $HOME/vmlinuxes -type f -mtime +90 -delete
 
