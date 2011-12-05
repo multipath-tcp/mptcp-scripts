@@ -9,3 +9,5 @@ git remote update
 
 cd $HOME/mptcp_tools
 git pull
+
+touch $HOME/no_crontab
