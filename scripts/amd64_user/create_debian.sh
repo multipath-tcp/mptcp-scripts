@@ -15,6 +15,8 @@ DATE=`date +%Y%m%d`
 export CONCURRENCY_LEVEL=3
 fakeroot make-kpkg --initrd -j 2 --revision $DATE kernel_image kernel_headers
 
+kernel_version=`ls -l -t debian/linux-image-*/lib/modules/ | head -n 2 | tail -n 1 | cut -d \  -f 8`
+
 # Create meta-package
 rm -Rf linux-mptcp
 
