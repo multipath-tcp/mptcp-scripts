@@ -19,7 +19,7 @@ make-kpkg --initrd -j 2 --revision $DATE kernel_image kernel_headers
 
 # Install new kernel on host-machine
 
-kernel_version=`ls debian/linux-image-*/lib/modules/`
+kernel_version=`ls -l -t debian/linux-image-*/lib/modules/ | head -n 2 | tail -n 1 | cut -d \  -f 8`
 make install modules_install
 if [ -f /boot/initrd.img-${kernel_version} ];
 then
@@ -50,7 +50,7 @@ echo "Maintainer: Christoph Paasch" >> $ctrl
 echo "Description: A meta-package for linux-mptcp" >> $ctrl
 
 dpkg --build linux-mptcp
-mv linux-mptcp.deb linux-mptcp_${version}_all.deb
+mv linux-mptcp.deb linux-mptcp_${DATE}_all.deb
 
 
 # Update Debian-repositories
