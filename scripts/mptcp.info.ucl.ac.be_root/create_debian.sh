@@ -46,7 +46,7 @@ echo "Priority: optional" >> $ctrl
 echo "Architecture: all" >> $ctrl
 echo "Depends: linux-headers-${kernel_version}, linux-image-${kernel_version}" >> $ctrl
 echo "Installed-Size:" >> $ctrl
-echo "Maintainer: Christoph Paasch" >> $ctrl
+echo "Maintainer: Christoph Paasch <christoph.paasch@uclouvain.be>" >> $ctrl
 echo "Description: A meta-package for linux-mptcp" >> $ctrl
 
 dpkg --build linux-mptcp
