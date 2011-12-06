@@ -4,6 +4,9 @@
 file=`basename $0`                                                                                                                                                                                                               
 trap "mutt -s \"$file crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/${file}.log; exit 1" ERR                                                                                                                         
 
+cd $HOME
+rm -f *.deb
+
 # Update sources 
 
 cd $HOME/mptcp
@@ -16,6 +19,8 @@ export CONCURRENCY_LEVEL=3
 fakeroot make-kpkg --initrd -j 2 --revision $DATE kernel_image kernel_headers
 
 kernel_version=`cat include/generated/utsrelease.h | cut -d \" -f 2`
+
+cd ..
 
 # Create meta-package
 #rm -Rf linux-mptcp
