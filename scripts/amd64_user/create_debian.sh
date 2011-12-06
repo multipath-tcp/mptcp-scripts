@@ -18,26 +18,26 @@ fakeroot make-kpkg --initrd -j 2 --revision $DATE kernel_image kernel_headers
 kernel_version=`cat include/generated/utsrelease.h | cut -d \" -f 2`
 
 # Create meta-package
-rm -Rf linux-mptcp
+#rm -Rf linux-mptcp
 
-mkdir linux-mptcp
-mkdir linux-mptcp/DEBIAN
-chmod -R a-s linux-mptcp
-ctrl="linux-mptcp/DEBIAN/control"
-touch $ctrl
+#mkdir linux-mptcp
+#mkdir linux-mptcp/DEBIAN
+#chmod -R a-s linux-mptcp
+#ctrl="linux-mptcp/DEBIAN/control"
+#touch $ctrl
 
-echo "Package: linux-mptcp" >> $ctrl
-echo "Version: ${DATE}" >> $ctrl
-echo "Section: main" >> $ctrl
-echo "Priority: optional" >> $ctrl
-echo "Architecture: all" >> $ctrl
-echo "Depends: linux-headers-${kernel_version}, linux-image-${kernel_version}" >> $ctrl
-echo "Installed-Size:" >> $ctrl
-echo "Maintainer: Christoph Paasch <christoph.paasch@uclouvain.be>" >> $ctrl
-echo "Description: A meta-package for linux-mptcp" >> $ctrl
+#echo "Package: linux-mptcp" >> $ctrl
+#echo "Version: ${DATE}" >> $ctrl
+#echo "Section: main" >> $ctrl
+#echo "Priority: optional" >> $ctrl
+#echo "Architecture: all" >> $ctrl
+#echo "Depends: linux-headers-${kernel_version}, linux-image-${kernel_version}" >> $ctrl
+#echo "Installed-Size:" >> $ctrl
+#echo "Maintainer: Christoph Paasch <christoph.paasch@uclouvain.be>" >> $ctrl
+#echo "Description: A meta-package for linux-mptcp" >> $ctrl
 
-dpkg --build linux-mptcp
-mv linux-mptcp.deb linux-mptcp_${DATE}_all.deb
+#dpkg --build linux-mptcp
+#mv linux-mptcp.deb linux-mptcp_${DATE}_all.deb
 
 # Install everything
 ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/*.deb"
