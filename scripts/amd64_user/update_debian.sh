@@ -2,7 +2,8 @@
 
 # Script on the amd64-host to compile amd64-images and update them on mptcp.info.ucl.ac.be
 file=`basename $0`
-trap "mutt -s \"$file crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/${file}.log; exit 1" ERR
+host=`cat /etc/hostname`
+trap "mutt -s \"$host $file crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/${file}.log; exit 1" ERR
 
 cd /usr/src
 

@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # Create and update the debian-repos
-file=`basename $0`                                                                                                                                                                                                               
-trap "mutt -s \"$file crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/${file}.log; exit 1" ERR                                                                                                                         
+file=`basename $0`
+host=`cat /etc/hostname`
+trap "mutt -s \"$host $file crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/${file}.log; exit 1" ERR                                                                                                                         
 
 cd $HOME
 rm -f *.deb
