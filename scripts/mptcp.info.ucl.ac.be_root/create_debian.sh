@@ -65,6 +65,12 @@ reprepro includedeb squeeze *.deb
 
 rm *.deb
 
+# Copy vmlinux-file
+cd /usr/src/mtcp
+cp vmlinux /root/vmlinuxes/vmlinux_${kernel_version}_${version}
+find /root/vmlinuxes -type f -mtime +90 -delete
+
+
 # Reboot
 
 /usr/bin/touch /root/rebooted
