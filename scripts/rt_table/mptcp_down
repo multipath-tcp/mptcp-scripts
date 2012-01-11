@@ -11,6 +11,6 @@ if [ "$IFACE" = lo -o "$MODE" != stop ]; then
         exit 0
 fi
 
-/bin/ip rule del table $DEVICE_IFACE
-/bin/ip route flush table $DEVICE_IFACE 
+ip rule del table $DEVICE_IFACE
+ip route flush table $DEVICE_IFACE 
 

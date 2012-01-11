@@ -14,6 +14,8 @@ git pull
 
 # Create mptcp image and header package
 export CONCURRENCY_LEVEL=3
+fakeroot debian/rules clean
+fakeroot debian/rules debian/control
 skipabi=true skipmodule=true fakeroot debian/rules binary-mptcp
 kernel_version=`ls -l -t debian/linux-image-*/lib/modules/ | head -n 2 | tail -n 1 | cut -d \  -f 8`
 version=`cat debian/linux-image-${kernel_version}/DEBIAN/control | grep Version | cut -d . -f 4`
