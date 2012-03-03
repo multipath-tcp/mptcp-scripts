@@ -21,7 +21,7 @@ if [ $DHCP4_IP_ADDRESS ]; then
 	SUBNET=`echo $IP4_ADDRESS_0 | cut -d \   -f 1 | cut -d / -f 2`
 	ip rule add from $DHCP4_IP_ADDRESS table $DEVICE_IFACE
 	ip route add table $DEVICE_IFACE to $DHCP4_NETWORK_NUMBER/$SUBNET dev $DEVICE_IFACE scope link
-	ip route add table $DEVICE_IFACE default via $DHCP4_ROUTERS
+	ip route add table $DEVICE_IFACE default via $DHCP4_ROUTERS dev $DEVICE_IFACE
 else
 	# PPP-interface
 	IPADDR=`echo $IP4_ADDRESS_0 | cut -d \   -f 1 | cut -d / -f 1`

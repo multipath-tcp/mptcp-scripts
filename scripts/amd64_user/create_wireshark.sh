@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 ## build dependencies: 
 # apt-get build-dep wireshark 
 # apt-get install dpatch 
