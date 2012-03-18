@@ -78,21 +78,21 @@ else:
 	exit()
 
 if full == 1 or update == 1:
-	os.system("wget http://192.135.168.249/data/uml/vmlinux_"+arch+" -O vmlinux")
+	os.system("wget http://mptcp.info.ucl.ac.be/data/uml/vmlinux_"+arch+" -O vmlinux")
 	os.system("chmod u+x vmlinux")
 
 if full == 1:
-	os.system("wget http://192.135.168.249/data/uml/client.sh")
+	os.system("wget http://mptcp.info.ucl.ac.be/data/uml/client.sh")
 	os.system("chmod u+x client.sh")
-	os.system("wget http://192.135.168.249/data/uml/server.sh")
+	os.system("wget http://mptcp.info.ucl.ac.be/data/uml/server.sh")
 	os.system("chmod u+x server.sh")
-	os.system("wget http://192.135.168.249/data/uml/fs_client_"+arch+".bz2"+" -O fs_client.bz2")
-	os.system("wget http://192.135.168.249/data/uml/fs_server_"+arch+".bz2"+" -O fs_server.bz2")
+	os.system("wget http://mptcp.info.ucl.ac.be/data/uml/fs_client_"+arch+".bz2"+" -O fs_client.bz2")
+	os.system("wget http://mptcp.info.ucl.ac.be/data/uml/fs_server_"+arch+".bz2"+" -O fs_server.bz2")
 
 	os.system("bunzip2 fs_client.bz2")
 	os.system("bunzip2 fs_server.bz2")
 
-	os.system("wget http://192.135.168.249/data/uml/README")
+	os.system("wget http://mptcp.info.ucl.ac.be/data/uml/README")
 
 print "========================================================================"
 print "FINISHED"
