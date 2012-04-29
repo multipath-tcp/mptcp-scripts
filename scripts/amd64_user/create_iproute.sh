@@ -47,7 +47,7 @@ scp $HOME/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
 ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh squeeze"
 ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/setup_amd64.sh"
 
-ssh root@mptcp.info.ucl.ac.be "cd /var/www/repos/apt/debian/ ; reprepro copy orneic squeeze iproute"
+ssh root@mptcp.info.ucl.ac.be "cd /var/www/repos/apt/debian/ ; reprepro copy precise squeeze iproute"
 
 rm *.deb
 

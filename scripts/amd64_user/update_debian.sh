@@ -10,10 +10,11 @@ cd /usr/src
 rm -f *.deb
 
 cd /usr/src/mptcp
+rm -Rf debian/linux-*
 git pull
 
 # Create mptcp image and header package
-export CONCURRENCY_LEVEL=3
+export CONCURRENCY_LEVEL=1
 fakeroot debian/rules clean
 fakeroot debian/rules debian/control
 skipabi=true skipmodule=true fakeroot debian/rules binary-mptcp
@@ -49,7 +50,7 @@ ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/*.deb"
 scp *.deb root@mptcp.info.ucl.ac.be:/tmp/
 scp /root/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
 
-ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh orneic"
+ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh precise"
 ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/setup_amd64.sh"
 
 rm *.deb
