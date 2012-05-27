@@ -17,7 +17,7 @@ cd /usr/src
 rm -f *.deb
 
 cd /usr/src/mptcp
-#rm -Rf debian/linux-*
+rm -Rf debian/linux-*
 git pull
 
 # Create mptcp image and header package
