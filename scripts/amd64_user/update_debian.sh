@@ -21,11 +21,11 @@ rm -Rf debian/linux-*
 git pull
 
 # Create mptcp image and header package
-export CONCURRENCY_LEVEL=5
+export CONCURRENCY_LEVEL=3
 fakeroot debian/rules clean
 fakeroot debian/rules debian/control
 skipabi=true skipmodule=true fakeroot debian/rules binary-$FLAV
-kernel_version=`ls -l -t debian/linux-image-*/lib/modules/ | head -n 2 | tail -n 1 | cut -d \  -f 9`
+kernel_version=`ls -1 -t debian/linux-image-*/lib/modules/ | head -n 1 | tail -n 1`
 version=`cat debian/linux-image-${kernel_version}/DEBIAN/control | grep Version | cut -d . -f 4`
 
 
@@ -70,5 +70,7 @@ rm *.deb
 # Copy vmlinux-file
 cd /usr/src/mptcp
 cp debian/build/build-${FLAV}/vmlinux /root/vmlinuxes/vmlinux_${kernel_version}_${version}
+rm /root/vmlinuxes/vmlinux
+ln -s /root/vmlinuxes/vmlinux_${kernel_version}_${version} /root/vmlinuxes/vmlinux
 find /root/vmlinuxes -type f -mtime +90 -delete
 
