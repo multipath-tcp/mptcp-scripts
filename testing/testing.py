@@ -23,7 +23,8 @@ current = "default"
 
 def usage():
 	print "./testing.py [--gig] [bug_xx [bug_xx [bug_xx...]]]"
-	print "--gig means one-gig testbed"
+	print "--gig means one-gig testbed on hen"
+	print "--inl means one-gig testbed on inl"
 
 try:
 	optlist, bugs = getopt.getopt(sys.argv[1:], '', ['gig'])
@@ -33,14 +34,16 @@ except  getopt.GetoptError, err:
         usage()
         sys.exit(2)
 
-onegig = True
+onehen = False 
+oneinl = True
 
 for o, a in optlist:
 	if o == "--gig":
-		onegig = True
+		onehen = True
+	if o == "--inl":
+		oneinl = True
 
-if onegig:
-	print "Testing 1Gig testbed"
+if onehen:
 	clientidx = "48"
 	client_itf0 = "eth0"
 	client_itf1 = "eth2"
@@ -57,6 +60,30 @@ if onegig:
 	server_itf0 = "eth0"
 	server_itf1 = "eth4"
 	server_itf2 = "eth5"
+	client = "computer"+clientidx
+	router = "computer"+routeridx
+	server = "computer"+serveridx
+elif oneinl:
+        clientidx = "48"
+        client_itf0 = "eth0"
+        client_itf1 = "eth2"
+        client_itf2 = "eth3"
+
+        routeridx = "49"
+        router_itf0 = "eth0"
+        router_itf11 = "eth2"
+        router_itf12 = "eth3"
+        router_itf21 = "eth4"
+        router_itf22 = "eth5"
+
+        serveridx = "50"
+        server_itf0 = "eth0"
+        server_itf1 = "eth4"
+        server_itf2 = "eth5"
+
+	client = "comp"+clientidx
+	router = "comp"+routeridx
+	server = "comp"+serveridx
 else:
 	clientidx = "98"
 	client_itf0 = "eth1"
@@ -72,10 +99,10 @@ else:
 	server_itf0 = "eth1"
 	server_itf1 = "eth6"
 	server_itf2 = "eth7"
+	client = "computer"+clientidx
+	router = "computer"+routeridx
+	server = "computer"+serveridx
 
-client = "computer"+clientidx
-router = "computer"+routeridx
-server = "computer"+serveridx
 router_ip = "10.1.1.2"
 server_ip = "10.2.1.1"
 
