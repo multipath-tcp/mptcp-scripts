@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import math
 import os
 import time
 import sys
@@ -18,6 +19,9 @@ global sub_srv
 global cli
 global pro
 global srv
+global HZ
+
+HZ = 1000
 
 current = "default"
 
@@ -80,17 +84,21 @@ elif oneinl:
 
         routeridx = "5"
         router_itf0 = "eth0"
-        router_itf11 = "eth2"
-        router_itf12 = "eth3"
-        router_itf21 = "eth4"
-        router_itf22 = "eth5"
+	router_10gitf1 = "eth2"
+	router_10gitf2 = "eth3"
+        router_itf11 = "eth4"
+        router_itf12 = "eth5"
+        router_itf21 = "eth6"
+        router_itf22 = "eth7"
 
         serveridx = "6"
         server_itf0 = "eth0"
-        server_itf1 = "eth4"
-        server_itf2 = "eth5"
-        server_itf3 = "eth2"
-        server_itf4 = "eth3"
+	server_10gitf1 = "eth2"
+	server_10gitf2 = "eth3"
+        server_itf1 = "eth6"
+        server_itf2 = "eth7"
+        server_itf3 = "eth4"
+        server_itf4 = "eth5"
 
 	client = "comp"+clientidx
 	router = "comp"+routeridx
@@ -118,6 +126,7 @@ client_ip = "10.1.1.1"
 client_ip2 = "10.1.2.1"
 router_ip = "10.1.1.2"
 server_ip = "10.2.1.1"
+server_ip_10g = "10.2.10.1"
 
 def do_ssh(host, cmd):
         return os.system("ssh -o ServerAliveInterval=10 root@"+host+" \""+cmd+"\"")
@@ -217,8 +226,12 @@ def kill_serial(proc):
 
 	proc.kill()
 
-def stop_bug(bug, look_for=["Call Trace:", "kmemleak"], must_be_client=[], must_be_router=[], must_be_server=[]):
+def stop_bug(bug, look_for=["Call Trace:", "kmemleak", "too many of orphaned"], must_be_client=[], must_be_router=[], must_be_server=[]):
         failed = False
+	
+	do_ssh(client, "ip route flush cache")
+	do_ssh(router, "ip route flush cache")
+	do_ssh(server, "ip route flush cache")
 
         get_netstat_final(client, bug)
         get_netstat_final(router, bug)
@@ -349,7 +362,6 @@ def verif_iperf(fname, mingb, times):
 
 	return failed
 
-
 def bug_cheng_sbuf():
 	# SETUP
 	failed = False
@@ -420,10 +432,12 @@ def remove_addr():
         ifile = "remove_addr/iperf_res"
         num = 4
 
+	set_rbuf_params(16, 1000, 1000, 100, 100, 1, 1)
+
         do_ssh(server, "killall -9 iperf")
         do_ssh_back(server, "iperf -s &")
-        do_ssh(client, "sysctl -w net.mptcp.mptcp_mss=8500")
-        do_ssh(server, "sysctl -w net.mptcp.mptcp_mss=8500")
+        do_ssh(client, "sysctl -w net.mptcp.mptcp_mss=1400")
+        do_ssh(server, "sysctl -w net.mptcp.mptcp_mss=1400")
         do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
         do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
 
@@ -434,6 +448,7 @@ def remove_addr():
 	subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 30 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
 
         time.sleep(10)
+	print "ifconfig "+server_itf1+" down"
 	do_ssh(server, "ifconfig "+server_itf1+" down")
 
 	time.sleep(40)
@@ -449,19 +464,27 @@ def remove_addr():
         if verif_iperf(ifile, 0.9, num):
                 failed = True
 
+	do_ssh(client, "/root/kill_tc.sh")
+	do_ssh(router, "/root/kill_tc.sh")
+	do_ssh(server, "/root/kill_tc.sh")
+
 	do_ssh(server, "/etc/init.d/networking restart")
+        do_ssh(server, "ip link set dev "+server_itf3+" multipath off")
+        do_ssh(server, "ip link set dev "+server_itf4+" multipath off")
 
         return failed
 
 def add_addr():
         failed = False
         ifile = "add_addr/iperf_res"
-        num = 4
+        num = 4 
+
+#	set_rbuf_params(16, 10, 10, 100, 100, 1, 1)
 
         do_ssh(server, "killall -9 iperf")
         do_ssh_back(server, "iperf -s &")
-        do_ssh(client, "sysctl -w net.mptcp.mptcp_mss=8500")
-        do_ssh(server, "sysctl -w net.mptcp.mptcp_mss=8500")
+        do_ssh(client, "sysctl -w net.mptcp.mptcp_mss=1400")
+        do_ssh(server, "sysctl -w net.mptcp.mptcp_mss=1400")
         do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
         do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
 
@@ -482,12 +505,16 @@ def add_addr():
 	print "Remove ip from "+client_itf2
         do_ssh(client, "ip addr del dev "+client_itf2+" "+client_ip2+"/24")
 
-        time.sleep(30)
+        time.sleep(40)
         fd.close()
         do_ssh(client, "killall -9 iperf")
         do_ssh(server, "killall -9 iperf")
         do_ssh(client, "sysctl -p")
         do_ssh(server, "sysctl -p")
+
+	do_ssh(client, "/root/kill_tc.sh")
+	do_ssh(router, "/root/kill_tc.sh")
+	do_ssh(server, "/root/kill_tc.sh")
 
         if stop_bug("add_addr"):
                 failed = True
@@ -496,6 +523,8 @@ def add_addr():
                 failed = True
 
         do_ssh(client, "/etc/init.d/networking restart")
+        do_ssh(client, "ip link set dev "+client_itf3+" multipath off")
+        do_ssh(client, "ip link set dev "+client_itf4+" multipath off")
 
         return failed
 
@@ -548,6 +577,8 @@ def add_addr2():
                 failed = True
 
         do_ssh(client, "/etc/init.d/networking restart")
+        do_ssh(client, "ip link set dev "+client_itf3+" multipath off")
+        do_ssh(client, "ip link set dev "+client_itf4+" multipath off")
 
         return failed
 
@@ -555,12 +586,16 @@ def add_addr2():
 def link_failure():
         failed = False
         ifile = "link_failure/iperf_res"
-        num = 4
+        num = 1
+
+#	set_rbuf_params(16, 10, 10, 100, 100, 1, 1)
 
         do_ssh(server, "killall -9 iperf")
         do_ssh_back(server, "iperf -s &")
-        do_ssh(client, "sysctl -w net.mptcp.mptcp_mss=8500")
-        do_ssh(server, "sysctl -w net.mptcp.mptcp_mss=8500")
+        do_ssh(client, "sysctl -w net.mptcp.mptcp_mss=1400")
+        do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
+        do_ssh(server, "sysctl -w net.mptcp.mptcp_mss=1400")
+        do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
 
         start_bug("link_failure")
         time.sleep(10)
@@ -581,10 +616,13 @@ def link_failure():
         if stop_bug("link_failure"):
                 failed = True
 
-        if verif_iperf(ifile, 0.9, num):
+        if verif_iperf(ifile, 0.8, num):
                 failed = True
 
 	do_ssh(router, "iptables -F FORWARD")
+#	do_ssh(client, "/root/kill_tc.sh")
+#	do_ssh(router, "/root/kill_tc.sh")
+#	do_ssh(server, "/root/kill_tc.sh")
 
         return failed
 
@@ -594,9 +632,9 @@ def link_failure_2():
         start_bug("link_failure_2")
 
 	do_ssh(client, "rm 500MB")
-	do_ssh(router, "tc qdisc add dev "+router_itf12+" root netem delay 100ms limit 1000")
-	do_ssh(router, "tc qdisc add dev "+router_itf22+" root netem delay 100ms limit 1000")
-        time.sleep(10)
+#	do_ssh(router, "tc qdisc add dev "+router_itf12+" root netem delay 100ms limit 1000")
+#	do_ssh(router, "tc qdisc add dev "+router_itf22+" root netem delay 100ms limit 1000")
+	time.sleep(5)
 
 	fd = open(scpfile, 'w')
         subprocess.Popen("ssh root@"+client+" scp root@"+server_ip+":/var/www/500MB . ", stdout=fd, stderr=fd, shell=True)
@@ -604,7 +642,7 @@ def link_failure_2():
         time.sleep(3)
         do_ssh(router, "iptables -A FORWARD -s "+client_ip+" -j DROP")
 
-        time.sleep(40)
+        time.sleep(50)
 
 	fd.close()
 
@@ -705,8 +743,8 @@ def pre_close():
         do_ssh(server, "killall -9 iperf")
 
 	# Give the meta some time
-	time.sleep(5)
-        if stop_bug("pre_close", must_be_client=["mptcp_release_mpcb"], must_be_server=["mptcp_release_mpcb"]):
+	time.sleep(10)
+        if stop_bug("pre_close", must_be_client=["destroying meta-sk"], must_be_server=["destroying meta-sk"]):
                 failed = True
 
         do_ssh(client, "sysctl -p")
@@ -714,7 +752,77 @@ def pre_close():
 
         return failed
 
+def fast_close():
+        failed = False
+        num = 1
 
+        do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
+        do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
+        do_ssh_back(server, "/root/simple_server/server_fclose &")
+
+        start_bug("fast_close")
+        time.sleep(3)
+
+	do_ssh(client, "/root/simple_client/client_fclose")
+
+        # Give the meta some time
+        time.sleep(10)
+        if stop_bug("fast_close", must_be_client=["destroying meta-sk"], must_be_server=["destroying meta-sk"]):
+                failed = True
+
+        do_ssh(client, "sysctl -p")
+        do_ssh(server, "sysctl -p")
+
+        return failed
+
+def so_linger():
+        failed = False
+        num = 1
+
+        do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
+        do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
+        do_ssh_back(server, "/root/simple_server/server_linger &")
+
+        start_bug("so_linger")
+        time.sleep(3)
+
+        do_ssh(client, "/root/simple_client/client_linger")
+
+        # Give the meta some time
+        time.sleep(10)
+        if stop_bug("so_linger", must_be_client=["destroying meta-sk"], must_be_server=["destroying meta-sk"]):
+                failed = True
+
+        do_ssh(client, "sysctl -p")
+        do_ssh(server, "sysctl -p")
+
+        return failed
+
+def srr():
+        failed = False
+        num = 1
+
+        do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
+        do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
+	do_ssh(client, "sysctl -w net.ipv4.conf.all.accept_source_route=1")
+	do_ssh(router, "sysctl -w net.ipv4.conf.all.accept_source_route=1")
+	do_ssh(server, "sysctl -w net.ipv4.conf.all.accept_source_route=1")
+        do_ssh_back(server, "/root/simple_server/server_srr &")
+
+        start_bug("srr")
+        time.sleep(3)
+
+        do_ssh(client, "/root/simple_client/client_srr")
+
+        # Give the meta some time
+        time.sleep(10)
+        if stop_bug("srr", must_be_client=["destroying meta-sk"], must_be_server=["destroying meta-sk"]):
+                failed = True
+
+        do_ssh(client, "sysctl -p")
+        do_ssh(server, "sysctl -p")
+
+        return failed
 
 def time_wait_ab():
         failed = False
@@ -737,8 +845,8 @@ def time_wait_ab():
 		
 		found += 1
 
-	if found > 50:
-		print "+++ found more than 50 time-wait-sockets"
+	if found > 100:
+		print "+++ found more than 100 time-wait-sockets"
 		failed = True
 	f.close()
 
@@ -763,19 +871,19 @@ def simple_ab():
 
         ret = do_ssh(client, "ab -c 100 -n 100000 "+server_ip+"/1KB")
 
-	if ret != 0:
+	if ret != 0 and not slow:
 		failed = True
 		print "+++ apache-benchmark failed"	
 
         ret = do_ssh(client, "ab -c 250 -n 10000 "+server_ip+"/50KB")
 
-        if ret != 0:
+        if ret != 0 and not slow:
                 failed = True
                 print "+++ apache-benchmark failed"
 
         ret = do_ssh(client, "ab -c 500 -n 1000 "+server_ip+"/300KB")
 
-        if ret != 0:
+        if ret != 0 and not slow:
                 failed = True
                 print "+++ apache-benchmark failed"
 
@@ -795,7 +903,7 @@ def ab_300():
 
         ret = do_ssh(client, "ab -c 500 -n 1000 "+server_ip+"/300KB")
 
-        if ret != 0:
+        if ret != 0 and not slow:
                 failed = True
                 print "+++ apache-benchmark failed"
 
@@ -828,9 +936,9 @@ def bug_google():
 
         # DO EXP
 
-        do_ssh_back(client, "iperf -c "+server_ip+" -y c -t 100 > "+ifile+" &")
+        do_ssh_back(client, "iperf -c "+server_ip+" -y c -t 30 > "+ifile+" &")
 
-        time.sleep(110)
+        time.sleep(40)
 
         # FINISH
         do_ssh(client, "killall -9 iperf")
@@ -841,7 +949,7 @@ def bug_google():
         if stop_bug("bug_google"):
                 failed = True
 
-        if verif_iperf(ifile, 0.5, 1):
+        if verif_iperf(ifile, 1.8, 1):
                 failed = True
 
         do_ssh(client, "ip link set dev "+client_itf3+" multipath off")
@@ -956,6 +1064,71 @@ def brute_force_ab():
                         return ret
 		time.sleep(2)
 
+def iperf_10g():
+        failed = False
+        ifile = "iperf_10g/iperf_res"
+        num = 2
+
+	do_ssh(router, "/root/setup_rfs")
+	do_ssh(server, "/root/setup_rfs")
+        do_ssh(router, "sysctl -w net.ipv4.tcp_rmem='4096    87380  16777216'")
+        do_ssh(router, "sysctl -w net.ipv4.tcp_wmem='4096    16384  16777216'")
+        do_ssh(server, "sysctl -w net.ipv4.tcp_rmem='4096    87380  16777216'")
+        do_ssh(server, "sysctl -w net.ipv4.tcp_wmem='4096    16384  16777216'")
+#        do_ssh(router, "sysctl -w net.ipv4.tcp_rmem='4096    16777216  16777216'")
+#        do_ssh(router, "sysctl -w net.ipv4.tcp_wmem='4096    16777216  16777216'")
+#        do_ssh(server, "sysctl -w net.ipv4.tcp_rmem='4096    16777216  16777216'")
+#        do_ssh(server, "sysctl -w net.ipv4.tcp_wmem='4096    16777216  16777216'")
+
+	do_ssh(router, "ip link set dev "+router_itf11+" multipath off")
+	do_ssh(router, "ip link set dev "+router_itf12+" multipath off")
+	do_ssh(router, "ip link set dev "+router_itf21+" multipath off")
+	do_ssh(router, "ip link set dev "+router_itf22+" multipath off")
+	do_ssh(router, "ip link set dev "+router_10gitf1+" multipath on")
+	do_ssh(router, "ip link set dev "+router_10gitf2+" multipath on")
+	do_ssh(server, "ip link set dev "+server_10gitf1+" multipath on")
+	do_ssh(server, "ip link set dev "+server_10gitf2+" multipath on")
+	do_ssh(server, "ip link set dev "+server_itf1+" multipath off")
+	do_ssh(server, "ip link set dev "+server_itf2+" multipath off")
+
+        do_ssh(server, "killall -9 iperf")
+        do_ssh_back(server, "iperf -s -l 500K &")
+        do_ssh(router, "sysctl -w net.mptcp.mptcp_mss=8500")
+        do_ssh(server, "sysctl -w net.mptcp.mptcp_mss=8500")
+        do_ssh(router, "sysctl -w net.mptcp.mptcp_checksum=0")
+        do_ssh(server, "sysctl -w net.mptcp.mptcp_checksum=0")
+
+        start_bug("iperf_10g")
+        time.sleep(10)
+
+        do_ssh_back(router, "iperf -c "+server_ip_10g+" -t 30 -l 500K -y c -P "+str(num)+" > "+ifile+" &")
+
+        time.sleep(40)
+        do_ssh(router, "killall -9 iperf")
+        do_ssh(server, "killall -9 iperf")
+        do_ssh(router, "sysctl -p")
+        do_ssh(server, "sysctl -p")
+
+        if stop_bug("iperf_10g"):
+                failed = True
+
+        if verif_iperf(ifile, 13, num):
+                failed = True
+
+	do_ssh(router, "ip link set dev "+router_itf11+" multipath on")
+	do_ssh(router, "ip link set dev "+router_itf12+" multipath on")
+	do_ssh(router, "ip link set dev "+router_itf21+" multipath on")
+	do_ssh(router, "ip link set dev "+router_itf22+" multipath on")
+	do_ssh(router, "ip link set dev "+router_10gitf1+" multipath off")
+	do_ssh(router, "ip link set dev "+router_10gitf2+" multipath off")
+	do_ssh(server, "ip link set dev "+server_10gitf1+" multipath off")
+	do_ssh(server, "ip link set dev "+server_10gitf2+" multipath off")
+	do_ssh(server, "ip link set dev "+server_itf1+" multipath on")
+	do_ssh(server, "ip link set dev "+server_itf2+" multipath on")
+	do_ssh(router, "/root/stop_rfs")
+	do_ssh(server, "/root/stop_rfs")
+
+        return failed
 
 def do_test(bug):
 	print "========================================="
@@ -1000,6 +1173,14 @@ def test_all():
 		return True
 	if do_test(pre_close):
 		return True
+	if do_test(fast_close):
+		return True
+	if do_test(so_linger):
+		return True
+	if do_test(srr):
+		return True
+	if do_test(iperf_10g):
+		return True
 
 	return False
 
@@ -1009,23 +1190,41 @@ do_ssh(router, "sysctl -w net.ipv4.ip_forward=1")
 
 # Global prepare setup
 do_ssh(client, "iptables -F")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.2.1 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.3.1 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.4.1 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.1.1 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.3.1 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.4.1 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.1.1 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.2.1 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.4.1 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.1.1 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.2.1 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.3.1 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.2.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.3.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.4.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.10.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.11.0/24 -j DROP")
+
+do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.1.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.3.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.4.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.10.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.11.0/24 -j DROP")
+
+do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.1.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.2.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.4.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.10.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.11.0/24 -j DROP")
+
+do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.1.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.2.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.3.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.10.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.11.0/24 -j DROP")
+
+do_ssh(router, "iptables -A OUTPUT -s 10.2.10.0/24 -d 10.2.11.0/24 -j DROP")
+do_ssh(router, "iptables -A OUTPUT -s 10.2.11.0/24 -d 10.2.10.0/24 -j DROP")
 
 do_ssh(client, "ip link set dev "+client_itf3+" multipath off")
 do_ssh(client, "ip link set dev "+client_itf4+" multipath off")
+do_ssh(router, "ip link set dev "+router_10gitf1+" multipath off")
+do_ssh(router, "ip link set dev "+router_10gitf2+" multipath off")
 do_ssh(server, "ip link set dev "+server_itf3+" multipath off")
 do_ssh(server, "ip link set dev "+server_itf4+" multipath off")
+do_ssh(server, "ip link set dev "+server_10gitf1+" multipath off")
+do_ssh(server, "ip link set dev "+server_10gitf2+" multipath off")
 
 
 # Run specified experiments
@@ -1046,5 +1245,7 @@ print " SUMMARY"
 print "========================================="
 for i in failed_bugs:
 	print i+" failed"
+
+print bugs
 
 sys.exit(len(failed_bugs))
