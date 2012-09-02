@@ -923,12 +923,15 @@ def bug_google():
         do_ssh(server, "killall -9 iperf")
         do_ssh_back(server, "iperf -s &")
 
+	do_ssh(client, "/root/setup_rfs")
+	do_ssh(server, "/root/setup_rfs")
+
         do_ssh(client, "sysctl -w net.ipv4.tcp_wmem='4096    16384   4194304'")
         do_ssh(server, "sysctl -w net.ipv4.tcp_rmem='4096    16384   4194304'")
-	do_ssh(client, "ip link set dev "+client_itf3+" multipath on")
-	do_ssh(client, "ip link set dev "+client_itf4+" multipath on")
-	do_ssh(server, "ip link set dev "+server_itf3+" multipath on")
-	do_ssh(server, "ip link set dev "+server_itf4+" multipath on")
+#	do_ssh(client, "ip link set dev "+client_itf3+" multipath on")
+#	do_ssh(client, "ip link set dev "+client_itf4+" multipath on")
+#	do_ssh(server, "ip link set dev "+server_itf3+" multipath on")
+#	do_ssh(server, "ip link set dev "+server_itf4+" multipath on")
 
         start_bug("bug_google")
 
@@ -936,7 +939,8 @@ def bug_google():
 
         # DO EXP
 
-        do_ssh_back(client, "iperf -c "+server_ip+" -y c -t 30 > "+ifile+" &")
+        #do_ssh_back(client, "iperf -c "+server_ip+" -y c -t 30 > "+ifile+" &")
+        do_ssh_back(client, "iperf -c 10.1.1.2 -y c -t 30 > "+ifile+" &")
 
         time.sleep(40)
 
@@ -956,6 +960,9 @@ def bug_google():
         do_ssh(client, "ip link set dev "+client_itf4+" multipath off")
         do_ssh(server, "ip link set dev "+server_itf3+" multipath off")
         do_ssh(server, "ip link set dev "+server_itf4+" multipath off")
+
+	do_ssh(client, "/root/stop_rfs")
+	do_ssh(server, "/root/stop_rfs")
 
         return failed
 
@@ -1067,7 +1074,7 @@ def brute_force_ab():
 def iperf_10g():
         failed = False
         ifile = "iperf_10g/iperf_res"
-        num = 2
+        num = 1
 
 	do_ssh(router, "/root/setup_rfs")
 	do_ssh(server, "/root/setup_rfs")
@@ -1190,12 +1197,14 @@ do_ssh(router, "sysctl -w net.ipv4.ip_forward=1")
 
 # Global prepare setup
 do_ssh(client, "iptables -F")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.1.2.0/24 -j DROP")
 do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.2.0/24 -j DROP")
 do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.3.0/24 -j DROP")
 do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.4.0/24 -j DROP")
 do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.10.0/24 -j DROP")
 do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.11.0/24 -j DROP")
 
+do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.1.1.0/24 -j DROP")
 do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.1.0/24 -j DROP")
 do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.3.0/24 -j DROP")
 do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.4.0/24 -j DROP")
