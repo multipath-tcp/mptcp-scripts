@@ -43,7 +43,7 @@ if len(bugs) < 1:
 	sys.exit(2)
 
 onehen = False 
-oneinl = True
+oneinl = False
 slow = False
 
 for o, a in optlist:
@@ -59,6 +59,8 @@ if onehen:
 	client_itf0 = "eth0"
 	client_itf1 = "eth2"
 	client_itf2 = "eth3"
+	client_itf3 = "eth4"
+	client_itf4 = "eth5"
 
 	routeridx = "49"
 	router_itf0 = "eth0"
@@ -71,6 +73,8 @@ if onehen:
 	server_itf0 = "eth0"
 	server_itf1 = "eth4"
 	server_itf2 = "eth5"
+	server_itf3 = "eth2"
+	server_itf4 = "eth3"
 	client = "computer"+clientidx
 	router = "computer"+routeridx
 	server = "computer"+serveridx
@@ -949,7 +953,7 @@ def bug_google():
         if stop_bug("bug_google"):
                 failed = True
 
-        if verif_iperf(ifile, 1.8, 1):
+        if verif_iperf(ifile, 1.7, 1):
                 failed = True
 
         do_ssh(client, "ip link set dev "+client_itf3+" multipath off")
@@ -1068,6 +1072,9 @@ def iperf_10g():
         failed = False
         ifile = "iperf_10g/iperf_res"
         num = 2
+
+	if not oneinl:
+		return true
 
 	do_ssh(router, "/root/setup_rfs")
 	do_ssh(server, "/root/setup_rfs")
@@ -1219,12 +1226,16 @@ do_ssh(router, "iptables -A OUTPUT -s 10.2.11.0/24 -d 10.2.10.0/24 -j DROP")
 
 do_ssh(client, "ip link set dev "+client_itf3+" multipath off")
 do_ssh(client, "ip link set dev "+client_itf4+" multipath off")
-do_ssh(router, "ip link set dev "+router_10gitf1+" multipath off")
-do_ssh(router, "ip link set dev "+router_10gitf2+" multipath off")
+
+if oneinl:
+	do_ssh(router, "ip link set dev "+router_10gitf1+" multipath off")
+	do_ssh(router, "ip link set dev "+router_10gitf2+" multipath off")
 do_ssh(server, "ip link set dev "+server_itf3+" multipath off")
 do_ssh(server, "ip link set dev "+server_itf4+" multipath off")
-do_ssh(server, "ip link set dev "+server_10gitf1+" multipath off")
-do_ssh(server, "ip link set dev "+server_10gitf2+" multipath off")
+
+if oneinl:
+	do_ssh(server, "ip link set dev "+server_10gitf1+" multipath off")
+	do_ssh(server, "ip link set dev "+server_10gitf2+" multipath off")
 
 
 # Run specified experiments
