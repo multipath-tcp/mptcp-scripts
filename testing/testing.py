@@ -224,7 +224,7 @@ def kill_serial(proc):
         f = open("/tmp/ps_cpaasch")
         for l in f:
                 s = re.sub(' +', ' ', l)
-                os.system("kill -9 "+s.split(" ")[1])
+                os.system("kill "+s.split(" ")[1])
 
         f.close()
 
@@ -465,7 +465,7 @@ def remove_addr():
         if stop_bug("remove_addr"):
                 failed = True
 
-        if verif_iperf(ifile, 0.9, num):
+        if verif_iperf(ifile, 0.5, num):
                 failed = True
 
 	do_ssh(client, "/root/kill_tc.sh")
@@ -523,7 +523,7 @@ def add_addr():
         if stop_bug("add_addr"):
                 failed = True
 
-        if verif_iperf(ifile, 0.9, num):
+        if verif_iperf(ifile, 0.5, num):
                 failed = True
 
         do_ssh(client, "/etc/init.d/networking restart")
