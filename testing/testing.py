@@ -29,9 +29,10 @@ def usage():
 	print "./testing.py [--gig] [bug_xx [bug_xx [bug_xx...]]]"
 	print "--gig means one-gig testbed on hen"
 	print "--inl means one-gig testbed on inl"
+	print "--twoinl means the second one-gig testbed on inl"
 
 try:
-	optlist, bugs = getopt.getopt(sys.argv[1:], '', ['gig', 'inl', 'slow'])
+	optlist, bugs = getopt.getopt(sys.argv[1:], '', ['gig', 'inl', 'twoinl', 'slow'])
 except  getopt.GetoptError, err:
         # print help information and exit:
         print str(err) # will print something like "option -a not recognized"
@@ -44,6 +45,7 @@ if len(bugs) < 1:
 
 onehen = False 
 oneinl = False
+twoinl = False
 slow = False
 
 for o, a in optlist:
@@ -51,6 +53,8 @@ for o, a in optlist:
 		onehen = True
 	if o == "--inl":
 		oneinl = True
+	if o == "--twoinl":
+		twoinl = True
 	if o == "--slow":
 		slow = True
 
@@ -81,8 +85,8 @@ if onehen:
 elif oneinl:
         clientidx = "4"
         client_itf0 = "eth0"
-        client_itf1 = "eth2"
-        client_itf2 = "eth3"
+        client_itf1 = "eth6"
+        client_itf2 = "eth7"
         client_itf3 = "eth4"
         client_itf4 = "eth5"
 
@@ -107,6 +111,36 @@ elif oneinl:
 	client = "comp"+clientidx
 	router = "comp"+routeridx
 	server = "comp"+serveridx
+elif twoinl:
+        clientidx = "1"
+        client_itf0 = "eth0"
+        client_itf1 = "eth6"
+        client_itf2 = "eth7"
+        client_itf3 = "eth4"
+        client_itf4 = "eth5"
+
+        routeridx = "2"
+        router_itf0 = "eth0"
+        router_10gitf1 = "eth2"
+        router_10gitf2 = "eth3"
+        router_itf11 = "eth4"
+        router_itf12 = "eth5"
+        router_itf21 = "eth6"
+        router_itf22 = "eth7"
+
+        serveridx = "3"
+        server_itf0 = "eth0"
+        server_10gitf1 = "eth2"
+        server_10gitf2 = "eth3"
+        server_itf1 = "eth6"
+        server_itf2 = "eth7"
+        server_itf3 = "eth4"
+        server_itf4 = "eth5"
+
+        client = "comp"+clientidx
+        router = "comp"+routeridx
+        server = "comp"+serveridx
+
 else:
 	clientidx = "98"
 	client_itf0 = "eth1"
@@ -144,8 +178,8 @@ def get_netstat(host, f):
 def get_netstat_final(host, f):
 	do_ssh_back(host, "netstat -s > "+f+"/ns_"+host+"_after")
 	os.system("beforeafter "+f+"/ns_"+host+"_before "+f+"/ns_"+host+"_after > "+f+"/"+host+"ns")
-	os.system("rm "+f+"/ns_"+host+"_before")
-	os.system("rm "+f+"/ns_"+host+"_after")
+	#os.system("rm "+f+"/ns_"+host+"_before")
+	#os.system("rm "+f+"/ns_"+host+"_after")
 
 	do_ssh_back(host, "netstat -n > "+f+"/ns-n_"+host)
 
@@ -230,7 +264,7 @@ def kill_serial(proc):
 
 	proc.kill()
 
-def stop_bug(bug, look_for=["Call Trace:", "kmemleak", "too many of orphaned"], must_be_client=[], must_be_router=[], must_be_server=[]):
+def stop_bug(bug, look_for=["Call Trace:", "kmemleak", "too many of orphaned", "mptcp_fallback_infinite"], must_be_client=[], must_be_router=[], must_be_server=[]):
         failed = False
 	
 	do_ssh(client, "ip route flush cache")
@@ -278,8 +312,13 @@ def stop_bug(bug, look_for=["Call Trace:", "kmemleak", "too many of orphaned"], 
 
         return failed
 
+def host_limit_bw(host, itf, rate, burst, delay, limit):
+	do_ssh(host, "tc qdisc add dev "+itf+" root handle 1: htb default 12")
+	do_ssh(host, "tc class add dev "+itf+" parent 1:1 classid 1:12 htb rate "+str(rate)+"mbit burst "+str(burst))
+	do_ssh(host, "tc qdisc add dev "+itf+" parent 1:12 netem delay "+str(delay)+"ms limit "+str(limit))
 
-def set_rbuf_params(rmem, rate1, rate2, mdelay1, mdelay2, bdelay1, bdelay2):
+
+def set_rbuf_params(rmem, rate1, rate2, mdelay1, mdelay2, bdelay1, bdelay2, mss = 1400):
         rmem = int (rmem * 1024 * 1024)
         wmem = rmem
 
@@ -306,29 +345,38 @@ def set_rbuf_params(rmem, rate1, rate2, mdelay1, mdelay2, bdelay1, bdelay2):
 
         if rate1 < 1000:
                 burst = int(math.ceil(float(rate1) * 1000 * 1000 / HZ / 8))
-                print "Burst 1 is "+str(burst)
-                if burst < 2000:
-                        burst = 2000
-                print "Burst 1 is "+str(burst)
-                do_ssh(router, "tc qdisc add dev "+router_itf11+" root tbf rate "+str(rate1)+"mbit burst "+str(burst)+"b latency "+str(mdelay1 - bdelay1)+"ms")
-                do_ssh(router, "tc qdisc add dev "+router_itf12+" root tbf rate "+str(rate1)+"mbit burst "+str(burst)+"b latency "+str(mdelay1 - bdelay1)+"ms")
-                bdel1 = int(math.ceil(float(bdelay1)/2))
-                print "bdel1:"+str(bdel1)
-                do_ssh(client, "tc qdisc add dev "+client_itf1+" root netem delay "+str(bdel1)+"ms")
-                do_ssh(server, "tc qdisc add dev "+server_itf1+" root netem delay "+str(bdel1)+"ms")
+                if burst < mss + 200:
+                        burst = mss + 200
 
+		# bdelay1 * 4, because we have one hop -> thus * 2 and it's the RTT -> * 2
+		# Then * 2 to account for full buffers
+		# Then / 1000.0 because the argument is in ms, but we need s
+		# rate1 * 1024 * 1024 because it is in mbit but we need bit
+		# Then / 8.0 because we need bytes
+		# Then / (mss+100) because we need packets and not bytes . + 100 is roughly the MTU
+		limit = (bdelay1 * 4 * 2 / 1000.0) * rate1 * 1024 * 1024 / 8.0 / (mss+100)
+
+		host_limit_bw(router, router_itf11, rate1, burst, bdelay1, limit)
+		host_limit_bw(router, router_itf21, rate1, burst, bdelay1, limit)
+		host_limit_bw(server, server_itf1, rate1, burst, bdelay1, limit)
+		host_limit_bw(client, client_itf1, rate1, burst, bdelay1, limit)
         if rate2 < 1000:
                 burst = int(math.ceil(float(rate2) * 1000 * 1000 / HZ / 8))
-                print "Burst 2 is "+str(burst)
                 if burst < 2000:
                         burst = 2000
-                print "Burst 2 is "+str(burst)
-                do_ssh(router, "tc qdisc add dev "+router_itf21+" root tbf rate "+str(rate2)+"mbit burst "+str(burst)+"b latency "+str(mdelay2 - bdelay2)+"ms")
-                do_ssh(router, "tc qdisc add dev "+router_itf22+" root tbf rate "+str(rate2)+"mbit burst "+str(burst)+"b latency "+str(mdelay2 - bdelay2)+"ms")
-                bdel2 = int(math.ceil(float(bdelay2)/2))
-                print "bdel2:"+str(bdel2)
-                do_ssh(client, "tc qdisc add dev "+client_itf2+" root netem delay "+str(bdel2)+"ms")
-                do_ssh(server, "tc qdisc add dev "+server_itf2+" root netem delay "+str(bdel2)+"ms")
+                # bdelay2 * 4, because we have one hop -> thus * 2 and it's the RTT -> * 2
+                # Then * 2 to account for full buffers
+                # Then / 1000.0 because the argument is in ms, but we need s
+                # rate1 * 1024 * 1024 because it is in mbit but we need bit
+                # Then / 8.0 because we need bytes
+                # Then / (mss+100) because we need packets and not bytes . + 100 is roughly the MTU
+                limit = (bdelay2 * 4 * 2 / 1000.0) * rate2 * 1024 * 1024 / 8.0 / (mss+100)
+
+                host_limit_bw(router, router_itf12, rate2, burst, bdelay2, limit)
+                host_limit_bw(router, router_itf22, rate2, burst, bdelay2, limit)
+                host_limit_bw(server, server_itf2, rate2, burst, bdelay2, limit)
+                host_limit_bw(client, client_itf2, rate2, burst, bdelay2, limit)
+
 
 def verif_iperf(fname, mingb, times):
 	failed = False
@@ -411,6 +459,8 @@ def simple_iperf():
         do_ssh_back(server, "iperf -s -l 500K &")
 	do_ssh(client, "sysctl -w net.mptcp.mptcp_mss=8500")
 	do_ssh(server, "sysctl -w net.mptcp.mptcp_mss=8500")
+        do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
+        do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
 
 	start_bug("simple_iperf")
         time.sleep(10)
@@ -431,6 +481,77 @@ def simple_iperf():
 
         return failed
 
+def simple_iperf_limited():
+        failed = False
+        ifile = "simple_iperf_limited/iperf_res"
+        num = 4
+
+        set_rbuf_params(4, 8, 8, 100, 100, 10, 10)
+
+        do_ssh(server, "killall -9 iperf")
+        do_ssh_back(server, "iperf -s &")
+
+        start_bug("simple_iperf_limited")
+        time.sleep(10)
+
+        do_ssh_back(client, "iperf -c "+server_ip+" -t 30 -y c -P "+str(num)+" > "+ifile+" &")
+
+        time.sleep(40)
+        do_ssh(client, "killall -9 iperf")
+        do_ssh(server, "killall -9 iperf")
+        do_ssh(client, "sysctl -p")
+        do_ssh(server, "sysctl -p")
+
+        if stop_bug("simple_iperf_limited"):
+                failed = True
+
+        if verif_iperf(ifile, 0.001, num):
+                failed = True
+
+        do_ssh(client, "/root/kill_tc.sh")
+        do_ssh(router, "/root/kill_tc.sh")
+        do_ssh(server, "/root/kill_tc.sh")
+
+        return failed
+
+def simple_iperf_lossy():
+        failed = False
+        ifile = "simple_iperf_lossy/iperf_res"
+        num = 4
+
+        do_ssh(router, "tc qdisc add dev "+router_itf11+" root netem loss 1%")
+        do_ssh(router, "tc qdisc add dev "+router_itf12+" root netem loss 1%")
+        do_ssh(router, "tc qdisc add dev "+router_itf21+" root netem loss 1%")
+        do_ssh(router, "tc qdisc add dev "+router_itf22+" root netem loss 1%")
+
+        do_ssh(server, "killall -9 iperf")
+        do_ssh_back(server, "iperf -s &")
+
+        start_bug("simple_iperf_lossy")
+        time.sleep(10)
+
+        do_ssh_back(client, "iperf -c "+server_ip+" -t 30 -y c -P "+str(num)+" > "+ifile+" &")
+
+        time.sleep(40)
+        do_ssh(client, "killall -9 iperf")
+        do_ssh(server, "killall -9 iperf")
+        do_ssh(client, "sysctl -p")
+        do_ssh(server, "sysctl -p")
+
+        if stop_bug("simple_iperf_lossy"):
+                failed = True
+
+        if verif_iperf(ifile, 0.001, num):
+                failed = True
+
+        do_ssh(client, "/root/kill_tc.sh")
+        do_ssh(router, "/root/kill_tc.sh")
+        do_ssh(server, "/root/kill_tc.sh")
+
+        return failed
+
+
+
 def remove_addr():
         failed = False
         ifile = "remove_addr/iperf_res"
@@ -442,8 +563,6 @@ def remove_addr():
         do_ssh_back(server, "iperf -s &")
         do_ssh(client, "sysctl -w net.mptcp.mptcp_mss=1400")
         do_ssh(server, "sysctl -w net.mptcp.mptcp_mss=1400")
-        do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
-        do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
 
         start_bug("remove_addr")
         time.sleep(10)
@@ -483,14 +602,12 @@ def add_addr():
         ifile = "add_addr/iperf_res"
         num = 4 
 
-#	set_rbuf_params(16, 10, 10, 100, 100, 1, 1)
-
         do_ssh(server, "killall -9 iperf")
         do_ssh_back(server, "iperf -s &")
         do_ssh(client, "sysctl -w net.mptcp.mptcp_mss=1400")
         do_ssh(server, "sysctl -w net.mptcp.mptcp_mss=1400")
-        do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
-        do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
+    #    do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
+    #    do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
 
         start_bug("add_addr")
         time.sleep(10)
@@ -620,7 +737,7 @@ def link_failure():
         if stop_bug("link_failure"):
                 failed = True
 
-        if verif_iperf(ifile, 0.8, num):
+        if verif_iperf(ifile, 0.5, num):
                 failed = True
 
 	do_ssh(router, "iptables -F FORWARD")
@@ -879,13 +996,13 @@ def simple_ab():
 		failed = True
 		print "+++ apache-benchmark failed"	
 
-        ret = do_ssh(client, "ab -c 250 -n 10000 "+server_ip+"/50KB")
+        ret = do_ssh(client, "ab -c 100 -n 100000 "+server_ip+"/50KB")
 
         if ret != 0 and not slow:
                 failed = True
                 print "+++ apache-benchmark failed"
 
-        ret = do_ssh(client, "ab -c 500 -n 1000 "+server_ip+"/300KB")
+        ret = do_ssh(client, "ab -c 100 -n 10000 "+server_ip+"/300KB")
 
         if ret != 0 and not slow:
                 failed = True
@@ -905,7 +1022,7 @@ def ab_300():
         start_bug("ab_300")
         time.sleep(5)
 
-        ret = do_ssh(client, "ab -c 500 -n 1000 "+server_ip+"/300KB")
+        ret = do_ssh(client, "ab -c 100 -n 10000 "+server_ip+"/300KB")
 
         if ret != 0 and not slow:
                 failed = True
@@ -943,8 +1060,7 @@ def bug_google():
 
         # DO EXP
 
-        #do_ssh_back(client, "iperf -c "+server_ip+" -y c -t 30 > "+ifile+" &")
-        do_ssh_back(client, "iperf -c 10.1.1.2 -y c -t 30 > "+ifile+" &")
+        do_ssh_back(client, "iperf -c "+server_ip+" -y c -t 30 > "+ifile+" &")
 
         time.sleep(40)
 
@@ -957,7 +1073,7 @@ def bug_google():
         if stop_bug("bug_google"):
                 failed = True
 
-        if verif_iperf(ifile, 1.7, 1):
+        if verif_iperf(ifile, 1.0, 1):
                 failed = True
 
         do_ssh(client, "ip link set dev "+client_itf3+" multipath off")
@@ -974,13 +1090,114 @@ def bug_haproxy():
 	failed = False
 	do_ssh(router, "/usr/sbin/haproxy -f /etc/haproxy/haproxy.cfg_2 -D")
 
-	return basic_tests(cli1="off", cli2="off", pr11="off", pr12="off", pr21="off", pr22="off", srv1="off", srv2="off", conc="100", num="100000", bug="bug_haproxy", opts=" -X "+router_ip+":3129")
+	ret = basic_tests(cli1="off", cli2="off", pr11="off", pr12="off", pr21="off", pr22="off", srv1="off", srv2="off", conc="100", num="100000", bug="bug_haproxy", opts=" -X "+router_ip+":3129")
+
+	if ret != 0:
+		print "+++ ab on 1KB failed"
+		failed = True
+
+	time.sleep(5)
+
+	ret = basic_tests(cli1="off", cli2="off", pr11="off", pr12="off", pr21="off", pr22="off", srv1="off", srv2="off", conc="100", num="10000", bug="bug_haproxy", opts=" -X "+router_ip+":3129", size="300KB")
+
+	if ret != 0:
+		print "+++ ab on 1KB failed"
+		failed = True
 
 	time.sleep(5)
 
 	do_ssh(router, "killall -9 haproxy")
 	time.sleep(5)
 	return failed
+
+def bug_haproxy_limited():
+        failed = False
+        do_ssh(router, "/usr/sbin/haproxy -f /etc/haproxy/haproxy.cfg_2 -D")
+
+	set_rbuf_params(4, 8, 8, 100, 100, 10, 10)
+
+        ret = basic_tests(cli1="off", cli2="off", pr11="off", pr12="off", pr21="off", pr22="off", srv1="off", srv2="off", conc="100", num="10000", bug="bug_haproxy_limited", opts=" -X "+router_ip+":3129")
+
+        if ret != 0:
+                print "+++ ab on 1KB failed"
+                failed = True
+
+        time.sleep(5)
+
+	if not failed:
+	        ret = basic_tests(cli1="off", cli2="off", pr11="off", pr12="off", pr21="off", pr22="off", srv1="off", srv2="off", conc="100", num="100", bug="bug_haproxy_limited", opts=" -X "+router_ip+":3129", size="300KB")
+
+	        if ret != 0:
+	                print "+++ ab on 1KB failed"
+	                failed = True
+
+		time.sleep(5)
+
+        do_ssh(router, "killall -9 haproxy")
+
+        do_ssh(client, "/root/kill_tc.sh")
+        do_ssh(router, "/root/kill_tc.sh")
+        do_ssh(server, "/root/kill_tc.sh")
+
+        return failed
+
+def bug_ab_limited():
+        failed = False
+
+        set_rbuf_params(4, 8, 8, 100, 100, 10, 10)
+
+        if not failed:
+                ret = basic_tests(cli1="off", cli2="off", pr11="off", pr12="off", pr21="off", pr22="off", srv1="off", srv2="off", conc="100", num="1000", bug="bug_ab_limited")
+
+                if ret != 0:
+                        print "+++ ab on 1KB failed"
+                        failed = True
+
+        if not failed:
+                ret = basic_tests(cli1="on", cli2="on", pr11="off", pr12="off", pr21="off", pr22="off", srv1="on", srv2="on", conc="100", num="1000", bug="bug_ab_limited", size="50KB")
+
+                if ret != 0:
+                        print "+++ ab on 50KB failed"
+                        failed = True
+
+
+        do_ssh(client, "/root/kill_tc.sh")
+        do_ssh(router, "/root/kill_tc.sh")
+        do_ssh(server, "/root/kill_tc.sh")
+
+        return failed
+
+
+def bug_ab_lossy():
+        failed = False
+
+	do_ssh(router, "tc qdisc add dev "+router_itf11+" root netem loss 1%")
+	do_ssh(router, "tc qdisc add dev "+router_itf12+" root netem loss 1%")
+	do_ssh(router, "tc qdisc add dev "+router_itf21+" root netem loss 1%")
+	do_ssh(router, "tc qdisc add dev "+router_itf22+" root netem loss 1%")
+
+        if not failed:
+                ret = basic_tests(cli1="off", cli2="off", pr11="off", pr12="off", pr21="off", pr22="off", srv1="off", srv2="off", conc="100", num="100000", bug="bug_ab_lossy")
+
+                if ret != 0:
+                        print "+++ ab on 1KB failed"
+                        failed = True
+
+        if not failed:
+                ret = basic_tests(cli1="on", cli2="on", pr11="off", pr12="off", pr21="off", pr22="off", srv1="on", srv2="on", conc="100", num="100000", bug="bug_ab_lossy", size="50KB")
+
+                if ret != 0:
+                        print "+++ ab on 50KB failed"
+                        failed = True
+
+
+        do_ssh(client, "/root/kill_tc.sh")
+        do_ssh(router, "/root/kill_tc.sh")
+        do_ssh(server, "/root/kill_tc.sh")
+
+        return failed
+
+
 
 def bug_delay():
 	failed = False
@@ -1081,7 +1298,7 @@ def iperf_10g():
         num = 1
 
 	if not oneinl:
-		return true
+		return False
 
 	do_ssh(router, "/root/setup_rfs")
 	do_ssh(server, "/root/setup_rfs")
@@ -1195,6 +1412,14 @@ def test_all():
 		return True
 	if do_test(iperf_10g):
 		return True
+	if do_test(bug_haproxy_limited):
+		return True
+	if do_test(simple_iperf_limited):
+		return True
+	if do_test(bug_ab_lossy):
+		return True
+	if do_test(simple_iperf_lossy):
+		return True
 
 	return False
 
@@ -1233,18 +1458,20 @@ do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.11.0/24 -j DROP")
 do_ssh(router, "iptables -A OUTPUT -s 10.2.10.0/24 -d 10.2.11.0/24 -j DROP")
 do_ssh(router, "iptables -A OUTPUT -s 10.2.11.0/24 -d 10.2.10.0/24 -j DROP")
 
+do_ssh(client, "ip link set dev "+client_itf1+" multipath on")
+do_ssh(client, "ip link set dev "+client_itf2+" multipath on")
 do_ssh(client, "ip link set dev "+client_itf3+" multipath off")
 do_ssh(client, "ip link set dev "+client_itf4+" multipath off")
 
-if oneinl:
-	do_ssh(router, "ip link set dev "+router_10gitf1+" multipath off")
-	do_ssh(router, "ip link set dev "+router_10gitf2+" multipath off")
+do_ssh(router, "ip link set dev "+router_10gitf1+" multipath off")
+do_ssh(router, "ip link set dev "+router_10gitf2+" multipath off")
+do_ssh(server, "ip link set dev "+server_itf1+" multipath on")
+do_ssh(server, "ip link set dev "+server_itf2+" multipath on")
 do_ssh(server, "ip link set dev "+server_itf3+" multipath off")
 do_ssh(server, "ip link set dev "+server_itf4+" multipath off")
 
-if oneinl:
-	do_ssh(server, "ip link set dev "+server_10gitf1+" multipath off")
-	do_ssh(server, "ip link set dev "+server_10gitf2+" multipath off")
+do_ssh(server, "ip link set dev "+server_10gitf1+" multipath off")
+do_ssh(server, "ip link set dev "+server_10gitf2+" multipath off")
 
 
 # Run specified experiments
