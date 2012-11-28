@@ -1283,6 +1283,9 @@ def bug_google():
         do_ssh(client, "/root/setup_rfs")
         do_ssh(server, "/root/setup_rfs")
 
+        do_ssh(client, "sysctl -w net.mptcp.mptcp_mss=8500")
+        do_ssh(server, "sysctl -w net.mptcp.mptcp_mss=8500")
+
         #do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
         #do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
 
