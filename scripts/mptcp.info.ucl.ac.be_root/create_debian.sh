@@ -67,7 +67,7 @@ rm *.deb
 
 # Copy vmlinux-file
 cd /usr/src/mtcp
-cp vmlinux /root/vmlinuxes/vmlinux_${kernel_version}_${version}
+cp vmlinux /root/vmlinuxes/vmlinux_${kernel_version}_${DATE}
 find /root/vmlinuxes -type f -mtime +90 -delete
 
 

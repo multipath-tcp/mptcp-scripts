@@ -9,10 +9,12 @@ then
 	mutt -s "mptcp.info.ucl.ac.be rebooted" -- christoph.paasch@uclouvain.be < $HOME/mail
 fi
 
-if [ -f $HOME/no_crontab ]
-then
-	rm $HOME/no_crontab
-else
-	mutt -s "mptcp.info.ucl.ac.be - crontab issue!!!" -- christoph.paasch@uclouvain.be < $HOME/mail
-fi
+# This was used to check if update_mirror.sh run
+
+#if [ -f $HOME/no_crontab ]
+#then
+#	rm $HOME/no_crontab
+#else
+#	mutt -s "mptcp.info.ucl.ac.be - crontab issue!!!" -- christoph.paasch@uclouvain.be < $HOME/mail
+#fi
 

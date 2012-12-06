@@ -1,8 +1,9 @@
 #!/bin/bash
 
 file=`basename $0`
-host=`cat /etc/hostname`
-trap "mutt -s \"$host $file crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/${file}.log; exit 1" ERR                                                                                                                         
+logfile=/tmp/${file}.log
+exec > $logfile 2>&1
+trap "cat $logfile | uuencode $logfile | mail -s \"$file failed\" christoph.paasch@gmail.com ; exit 1" ERR
 
 cd $HOME/uml/mptcp
 git checkout mptcp_trunk

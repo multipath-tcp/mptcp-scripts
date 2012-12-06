@@ -1,8 +1,10 @@
 #!/bin/bash
 
 # Update all git-sites maintained by the user
-file=`basename $0`                                                                                                                                                                                                               
-trap "mutt -s \"$file crontab-failure\" -- christoph.paasch@uclouvain.be < /tmp/${file}.log; exit 1" ERR                                                                                                                         
+file=`basename $0`
+logfile=/tmp/${file}.log
+exec > $logfile 2>&1
+trap "cat $logfile | uuencode $logfile | mail -s \"$file failed\" christoph.paasch@gmail.com ; exit 1" ERR
 
 cd $HOME/mptcp_mirror
 git remote update
