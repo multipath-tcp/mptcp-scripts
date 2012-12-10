@@ -32,7 +32,7 @@ def usage():
         print "--twoinl means the second one-gig testbed on inl"
 
 try:
-        optlist, bugs = getopt.getopt(sys.argv[1:], '', ['gig', 'inl', 'twoinl', 'slow'])
+        optlist, bugs = getopt.getopt(sys.argv[1:], '', ['gig', 'inl', 'twoinl', 'slow', 'olia'])
 except  getopt.GetoptError, err:
         # print help information and exit:
         print str(err) # will print something like "option -a not recognized"
@@ -47,6 +47,7 @@ onehen = False
 oneinl = False
 twoinl = False
 slow = False
+olia = False
 
 for o, a in optlist:
         if o == "--gig":
@@ -57,6 +58,8 @@ for o, a in optlist:
                 twoinl = True
         if o == "--slow":
                 slow = True
+        if o == "--olia":
+                olia = True
 
 if onehen:
         clientidx = "48"
@@ -1289,8 +1292,8 @@ def bug_google():
         #do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
         #do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
 
-        do_ssh(client, "sysctl -w net.ipv4.tcp_wmem='4096    16384   4194304'")
-        do_ssh(server, "sysctl -w net.ipv4.tcp_rmem='4096    16384   4194304'")
+        do_ssh(client, "sysctl -w net.ipv4.tcp_wmem='4096    16384   14194304'")
+        do_ssh(server, "sysctl -w net.ipv4.tcp_rmem='4096    16384   14194304'")
 #       do_ssh(client, "ip link set dev "+client_itf3+" multipath on")
 #       do_ssh(client, "ip link set dev "+client_itf4+" multipath on")
 #       do_ssh(server, "ip link set dev "+server_itf3+" multipath on")
@@ -1452,14 +1455,11 @@ def bug_delay():
 
         do_ssh(client, "ip link set dev "+client_itf2+" multipath off")
         do_ssh(server, "ip link set dev "+server_itf2+" multipath off")
-        start_bug("bug_delay")
-
         do_ssh(router, "tc qdisc add dev "+router_itf11+" root netem delay 20ms limit 4000")
         do_ssh(router, "tc qdisc add dev "+router_itf21+" root netem delay 20ms limit 4000")
 
         do_ssh_back(server, "iperf -s &")
-
-        time.sleep(5)
+        start_bug("bug_delay")
 
         ret = do_ssh_back(client, "iperf -c "+server_ip+" -y c -t 30 > "+ifile)
 
@@ -1469,14 +1469,11 @@ def bug_delay():
         do_ssh(client, "sysctl -p")
         do_ssh(server, "sysctl -p")
 
-        if verif_iperf(ifile, 0.001, 1):
+        if verif_iperf(ifile, 0.01, 1):
                 failed = True
 
         do_ssh(client, "ip link set dev "+client_itf2+" multipath on")
         do_ssh(server, "ip link set dev "+server_itf2+" multipath on")
-
-        do_ssh(router, "tc qdisc del dev "+router_itf11+" root")
-        do_ssh(router, "tc qdisc del dev "+router_itf21+" root")
 
         do_ssh(router, "/root/kill_tc.sh")
 
@@ -1484,6 +1481,39 @@ def bug_delay():
                 failed = True
 
         return failed
+
+def test_3gwifi():
+        failed = False
+        ifile = "test_3gwifi/iperf_res"
+
+        set_rbuf_params(1, 8, 2, 100, 2000, 10, 150)
+        do_ssh(client, "tc qdisc del dev "+client_itf1+" root")
+        do_ssh(client, "tc qdisc del dev "+client_itf2+" root")
+        do_ssh(server, "tc qdisc del dev "+server_itf1+" root")
+        do_ssh(server, "tc qdisc del dev "+server_itf2+" root")
+        
+        do_ssh_back(server, "iperf -s &")
+        start_bug("test_3gwifi")
+
+        ret = do_ssh_back(client, "iperf -c "+server_ip+" -y c -t 30 > "+ifile)
+
+        # FINISH
+        do_ssh(client, "killall -9 iperf")
+        do_ssh(server, "killall -9 iperf")
+        do_ssh(client, "sysctl -p")
+        do_ssh(server, "sysctl -p")
+
+        if verif_iperf(ifile, 0.008, 1):
+                failed = True
+
+        do_ssh(router, "/root/kill_tc.sh")
+
+        if stop_bug("test_3gwifi"):
+                failed = True
+
+        return failed
+
+        
 
 def basic_tests(climpc="1", srvmpc="1", cli1="on", cli2="on", pr11="on", pr12="on", pr21="on", pr22="on", srv1="on", srv2="on", conc="1", num="1", bug = "basic_tests", size="1KB", opts="", cliport=0, srvport=0):
         failed = False
@@ -1626,8 +1656,8 @@ def do_test(bug):
 def test_all():
         if do_test(bug_cheng_sbuf):
                 return True
-        if do_test(bug_google):
-                return True
+        #if do_test(bug_google):
+                #return True
         if do_test(bug_haproxy):
                 return True
         if do_test(simple_iperf):
@@ -1728,6 +1758,11 @@ do_ssh(server, "ip link set dev "+server_itf4+" multipath off")
 
 do_ssh(server, "ip link set dev "+server_10gitf1+" multipath off")
 do_ssh(server, "ip link set dev "+server_10gitf2+" multipath off")
+
+if olia:
+        do_ssh(client, "sysctl -w net.ipv4.tcp_congestion_control=olia")
+        do_ssh(router, "sysctl -w net.ipv4.tcp_congestion_control=olia")
+        do_ssh(server, "sysctl -w net.ipv4.tcp_congestion_control=olia")
 
 
 # Run specified experiments
