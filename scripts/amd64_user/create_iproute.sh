@@ -6,7 +6,7 @@ BASE="/tmp/iproute"
 CTRL="${BASE}/DEBIAN/control"
 DATE=`date +%Y%m%d%H`
 
-cd $HOME/workspace/linux/iproute2/
+cd $HOME/iproute-mptcp/
 
 rm -Rf $BASE
 mkdir $BASE
