@@ -12,7 +12,7 @@ rm -Rf $BASE
 mkdir $BASE
 
 make
-make install
+DESTDIR=$BASE make install
 
 mkdir $BASE/DEBIAN
 
@@ -47,7 +47,9 @@ scp $HOME/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
 ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh squeeze"
 ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/setup_amd64.sh"
 
-ssh root@mptcp.info.ucl.ac.be "cd /var/www/repos/apt/debian/ ; reprepro copy precise squeeze iproute"
+ssh root@mptcp.info.ucl.ac.be "cd /var/www/repos/apt/debian/ ; reprepro -A amd64 copy precise squeeze iproute"
+ssh root@mptcp.info.ucl.ac.be "cd /var/www/repos/apt/debian/ ; reprepro -A amd64 copy quantal squeeze iproute"
+ssh root@mptcp.info.ucl.ac.be "cd /var/www/repos/apt/debian/ ; reprepro -A amd64 copy wheezy squeeze iproute"
 
 rm *.deb
 

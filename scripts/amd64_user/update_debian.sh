@@ -18,6 +18,7 @@ rm -f *.deb
 
 cd /usr/src/mptcp
 rm -Rf debian/linux-*
+git checkout mptcp_trunk_precise
 git pull
 
 # Create mptcp image and header package
