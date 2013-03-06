@@ -1,27 +1,32 @@
 #!/bin/bash
 
 set -e
+[ $# -ne 1 ] && echo "Usage: $0 [distribution]" && exit
 
+DIST=$1
+AR=amd64
 BASE="/tmp/iproute"
 CTRL="${BASE}/DEBIAN/control"
 DATE=`date +%Y%m%d%H`
 
-cd $HOME/iproute-mptcp/
+cd $HOME/workspace/linux/iproute2/
+git pull
 
 rm -Rf $BASE
 mkdir $BASE
 
+export ARCH=$AR
 make
 DESTDIR=$BASE make install
 
 mkdir $BASE/DEBIAN
 
 echo "Package: iproute" >> $CTRL
-echo "Version: ${DATE}" >> $CTRL
-echo "Architecture: amd64" >> $CTRL
+echo "Version: ${DATE}-${DIST}" >> $CTRL
+echo "Architecture: $AR" >> $CTRL
 echo "Maintainer: Christoph Paasch <christoph.paasch@uclouvain.be>" >> $CTRL
 #echo "Installed-Size: 1092" >> $CTRL
-echo "Depends: libc6 (>= 2.3), libdb4.8" >> $CTRL
+echo "Depends: libc6 (>= 2.11), libdb5.1" >> $CTRL
 echo "Conflicts: arpd, iproute" >> $CTRL
 echo "Provides: arpd" >> $CTRL
 echo "Section: net" >> $CTRL
@@ -47,9 +52,7 @@ scp $HOME/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
 ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh squeeze"
 ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/setup_amd64.sh"
 
-ssh root@mptcp.info.ucl.ac.be "cd /var/www/repos/apt/debian/ ; reprepro -A amd64 copy precise squeeze iproute"
-ssh root@mptcp.info.ucl.ac.be "cd /var/www/repos/apt/debian/ ; reprepro -A amd64 copy quantal squeeze iproute"
-ssh root@mptcp.info.ucl.ac.be "cd /var/www/repos/apt/debian/ ; reprepro -A amd64 copy wheezy squeeze iproute"
+ssh root@mptcp.info.ucl.ac.be "cd /var/www/repos/apt/debian/ ; reprepro -A amd64 copy precise ${DIST} iproute"
 
 rm *.deb
 
