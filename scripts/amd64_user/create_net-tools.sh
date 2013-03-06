@@ -2,10 +2,13 @@
 
 set -e
 
+[ $# -ne 1 ] && echo "Usage: $0 [distribution]" && exit
+
 AR=amd64
+DIST=$1
 BASE="/tmp/net-tools"
 CTRL="${BASE}/DEBIAN/control"
-DATE=`date +%Y%m%d%H`
+DATE=`date +%Y%m%d%H%M`
 
 cd $HOME/workspace/linux/net-tools/
 
@@ -20,7 +23,7 @@ DESTDIR=${BASE} make install
 mkdir $BASE/DEBIAN
 
 echo "Package: net-tools" >> $CTRL
-echo "Version: ${DATE}" >> $CTRL
+echo "Version: ${DATE}-${DIST}" >> $CTRL
 echo "Architecture: ${AR}" >> $CTRL
 echo "Maintainer: Christoph Paasch <christoph.paasch@uclouvain.be>" >> $CTRL
 #echo "Installed-Size: 1092" >> $CTRL
@@ -46,12 +49,10 @@ dpkg -b net-tools
 ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/*.deb"
 scp *.deb root@mptcp.info.ucl.ac.be:/tmp/
 scp $HOME/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
-ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh squeeze"
+ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh ${DIST}"
 ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/setup_amd64.sh"
 
 ssh root@mptcp.info.ucl.ac.be "cd /var/www/repos/apt/debian/ ; reprepro -A $AR copy precise squeeze net-tools"
-ssh root@mptcp.info.ucl.ac.be "cd /var/www/repos/apt/debian/ ; reprepro -A $AR copy quantal squeeze net-tools"
-ssh root@mptcp.info.ucl.ac.be "cd /var/www/repos/apt/debian/ ; reprepro -A $AR copy wheezy squeeze net-tools"
 
 rm *.deb
 
