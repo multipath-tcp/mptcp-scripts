@@ -7,7 +7,7 @@ DIST=$1
 AR=amd64
 BASE="/tmp/iproute"
 CTRL="${BASE}/DEBIAN/control"
-DATE=`date +%Y%m%d%H`
+DATE=`date +%Y%m%d%H%M`
 
 cd $HOME/workspace/linux/iproute2/
 git pull
@@ -49,7 +49,7 @@ dpkg -b iproute
 ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/*.deb"
 scp *.deb root@mptcp.info.ucl.ac.be:/tmp/
 scp $HOME/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
-ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh squeeze"
+ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh ${DIST}"
 ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/setup_amd64.sh"
 
 ssh root@mptcp.info.ucl.ac.be "cd /var/www/repos/apt/debian/ ; reprepro -A amd64 copy precise ${DIST} iproute"
