@@ -26,7 +26,7 @@ echo "Version: 5-${DATE}-${DIST}" >> $CTRL
 echo "Architecture: $AR" >> $CTRL
 echo "Maintainer: Christoph Paasch <christoph.paasch@uclouvain.be>" >> $CTRL
 #echo "Installed-Size: 1092" >> $CTRL
-echo "Depends: libc6 (>= 2.14), libpcap0.8 (>= 1.0.0), libssl1.0.0 (>= 1.0.0)" >> $CTRL
+echo "Depends: libc6 (>= 2.14), libpcap0.8 (>= 1.2.1), libssl1.0.0 (>= 1.0.0), libsmi2ldbl" >> $CTRL
 echo "Section: net" >> $CTRL
 echo "Priority: important" >> $CTRL
 echo "Homepage: http://multipath-tcp.org" >> $CTRL
@@ -43,8 +43,6 @@ scp *.deb root@mptcp.info.ucl.ac.be:/tmp/
 scp $HOME/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
 ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh ${DIST}"
 ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/setup_amd64.sh"
-
-ssh root@mptcp.info.ucl.ac.be "cd /var/www/repos/apt/debian/ ; reprepro -A $AR copy precise ${DIST} tcpdump"
 
 rm *.deb
 

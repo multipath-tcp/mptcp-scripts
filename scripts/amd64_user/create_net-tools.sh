@@ -53,7 +53,5 @@ scp $HOME/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
 ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh ${DIST}"
 ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/setup_amd64.sh"
 
-ssh root@mptcp.info.ucl.ac.be "cd /var/www/repos/apt/debian/ ; reprepro -A $AR copy precise ${DIST} net-tools"
-
 rm *.deb
 
