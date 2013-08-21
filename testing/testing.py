@@ -14,10 +14,10 @@ global client
 global server
 global server_ip
 global sub_cli
-global sub_pro
+global sub_rtr
 global sub_srv
 global cli
-global pro
+global rtr 
 global srv
 global HZ
 
@@ -30,9 +30,10 @@ def usage():
         print "--gig means one-gig testbed on hen"
         print "--inl means one-gig testbed on inl"
         print "--twoinl means the second one-gig testbed on inl"
+        print "--kvm means the kvm virtual testbed"
 
 try:
-        optlist, bugs = getopt.getopt(sys.argv[1:], '', ['gig', 'inl', 'twoinl', 'slow', 'olia','notso','nocsum'])
+        optlist, bugs = getopt.getopt(sys.argv[1:], '', ['kvm', 'gig', 'inl', 'twoinl', 'slow', 'olia','notso','nocsum'])
 except  getopt.GetoptError, err:
         # print help information and exit:
         print str(err) # will print something like "option -a not recognized"
@@ -46,12 +47,15 @@ if len(bugs) < 1:
 onehen = False
 oneinl = False
 twoinl = False
+kvm = False
 slow = False
 olia = False
 notso = False
 nocsum = False
 
 for o, a in optlist:
+        if o == "--kvm":
+                kvm = True
         if o == "--gig":
                 onehen = True
         if o == "--inl":
@@ -149,7 +153,35 @@ elif twoinl:
         client = "comp"+clientidx
         router = "comp"+routeridx
         server = "comp"+serveridx
+elif kvm:
+        clientidx = "1"
+        client_itf0 = "eth0"
+        client_itf1 = "eth1"
+        client_itf2 = "eth2"
+        client_itf3 = "eth3"
+        client_itf4 = "eth4"
 
+        routeridx = "2"
+        router_10gitf1 = "eth42"
+        router_10gitf2 = "eth42"
+        router_itf0 = "eth16"
+        router_itf11 = "eth1"
+        router_itf12 = "eth2"
+        router_itf21 = "eth3"
+        router_itf22 = "eth4"
+
+        serveridx = "3"
+        server_10gitf1 = "eth42"
+        server_10gitf2 = "eth42"
+        server_itf0 = "eth8"
+        server_itf1 = "eth1"
+        server_itf2 = "eth2"
+        server_itf3 = "eth3"
+        server_itf4 = "eth4"
+
+        client = "comp"+clientidx
+        router = "comp"+routeridx
+        server = "comp"+serveridx
 else:
         clientidx = "98"
         client_itf0 = "eth1"
@@ -184,10 +216,36 @@ server_ip4 = "10.2.4.1"
 server_ip_10g = "10.2.10.1"
 
 def do_ssh(host, cmd):
+        if kvm:
+                if host == "comp1":
+                        port = "8021"
+                if host == "comp2":
+                        port = "8022"
+                if host == "comp3":
+                        port = "8023"
+                return os.system("ssh -o ServerAliveInterval=10 -o ServerAliveCountMax=2 -p "+port+" root@127.0.0.1 \""+cmd+"\"")
         return os.system("ssh -o ServerAliveInterval=10 root@"+host+" \""+cmd+"\"")
 
 def do_ssh_back(host, cmd):
+        if kvm:
+                if host == "comp1":
+                        port = "8021"
+                if host == "comp2":
+                        port = "8022"
+                if host == "comp3":
+                        port = "8023"
+                return os.system("ssh -o ServerAliveInterval=10 -o ServerAliveCountMax=2 -p "+port+" root@127.0.0.1 "+cmd)
         return os.system("ssh -o ServerAliveInterval=10 root@"+host+" "+cmd)
+
+def do_scp(host, rem, loc):
+        if kvm:
+                if host == "comp1":
+                    return os.system("scp -P 8021 root@127.0.0.1:"+rem+" "+loc)
+                if host == "comp2":
+                    return os.system("scp -P 8022 root@127.0.0.1:"+rem+" "+loc)
+                if host == "comp3":
+                    return os.system("scp -P 8023 root@127.0.0.1:"+rem+" "+loc)
+        return os.system("scp root@"+host+":"+rem+" "+loc)
 
 def get_netstat(host, f):
         do_ssh_back(host, "nstat > "+f+"/ns_"+host+"_before")
@@ -227,15 +285,25 @@ def crash_in_serial(look_for, must_be, host, bug):
         return stop
 
 def ping_test(host):
-        ret = os.system("ping -c 1 -W 3 "+host)
+        ret = 0
+        if not kvm:
+            ret = os.system("ping -c 1 -W 3 "+host)
+        else:
+            if host == "comp1":
+                    port = "8021"
+            if host == "comp2":
+                    port = "8022"
+            if host == "comp3":
+                    port = "8023"
+            ret = os.system("ssh -o ServerAliveInterval=10 -o ServerAliveCountMax=2 -p "+port+" root@127.0.0.1 echo 0")
         return ret != 0
 
 def start_bug(bug, cliport = 0, srvport = 0, rtrport1 = 0, rtrport2 = 0):
         global sub_cli
-        global sub_pro
+        global sub_rtr
         global sub_srv
         global cli
-        global pro
+        global rtr
         global srv
 
 	do_ssh(client, "rm /tmp/client.dump")
@@ -266,19 +334,24 @@ def start_bug(bug, cliport = 0, srvport = 0, rtrport1 = 0, rtrport2 = 0):
         get_netstat(server, bug)
 
         cli = open(bug+"/client_serial", 'w')
-        sub_cli = subprocess.Popen(["s",clientidx],stdin=subprocess.PIPE, stdout=cli, stderr=cli)
         srv = open(bug+"/server_serial", 'w')
-        sub_srv = subprocess.Popen(["s",serveridx],stdin=subprocess.PIPE, stdout=srv, stderr=srv)
-        pro = open(bug+"/router_serial", 'w')
-        sub_pro = subprocess.Popen(["s",routeridx],stdin=subprocess.PIPE, stdout=pro, stderr=pro)
+        rtr = open(bug+"/router_serial", 'w')
+        if kvm:
+            sub_cli = subprocess.Popen(["tail", "-n", "0", "-f", "/tmp/client"], stdin=subprocess.PIPE, stdout=cli, stderr=cli)
+            sub_srv = subprocess.Popen(["tail", "-n", "0", "-f", "/tmp/server"], stdin=subprocess.PIPE, stdout=srv, stderr=srv)
+            sub_rtr = subprocess.Popen(["tail", "-n", "0", "-f", "/tmp/router"], stdin=subprocess.PIPE, stdout=rtr, stderr=rtr)
+        else:
+            sub_cli = subprocess.Popen(["s",clientidx],stdin=subprocess.PIPE, stdout=cli, stderr=cli)
+            sub_srv = subprocess.Popen(["s",serveridx],stdin=subprocess.PIPE, stdout=srv, stderr=srv)
+            sub_rtr = subprocess.Popen(["s",routeridx],stdin=subprocess.PIPE, stdout=pro, stderr=rtr)
 
-        time.sleep(5)
+            time.sleep(5)
 
-        for i in range(0, 5):
-                sub_cli.stdin.write("\n")
-                sub_srv.stdin.write("\n")
-                sub_srv.stdin.write("\n")
-                time.sleep(1)
+            for i in range(0, 5):
+                    sub_cli.stdin.write("\n")
+                    sub_srv.stdin.write("\n")
+                    sub_rtr.stdin.write("\n")
+                    time.sleep(1)
 
 
 def kill_serial(proc):
@@ -314,12 +387,12 @@ def stop_bug(bug, look_for=["Call Trace:", "kmemleak", "too many of orphaned", "
         kill_serial(sub_cli)
         srv.flush()
         kill_serial(sub_srv)
-        pro.flush()
-        kill_serial(sub_pro)
+        rtr.flush()
+        kill_serial(sub_rtr)
 
         cli.close()
         srv.close()
-        pro.close()
+        rtr.close()
 
         do_ssh_back(client, "\'echo scan > /sys/kernel/debug/kmemleak\'")
         do_ssh_back(router, "\'echo scan > /sys/kernel/debug/kmemleak\'")
@@ -345,8 +418,7 @@ def stop_bug(bug, look_for=["Call Trace:", "kmemleak", "too many of orphaned", "
         elif tcpdump:
                 do_ssh(client, "killall tshark")
                 time.sleep(3)
-                os.system("scp root@"+client+":/tmp/client.dump "+bug+"/")
-
+                do_scp(client, "/tmp/client.dump", bug+"/")
 
         if ping_test(router):
                 failed = True
@@ -354,8 +426,8 @@ def stop_bug(bug, look_for=["Call Trace:", "kmemleak", "too many of orphaned", "
         elif tcpdump:
                 do_ssh(router, "killall tshark")
                 time.sleep(3)
-                os.system("scp root@"+router+":/tmp/router1.dump "+bug+"/")
-                os.system("scp root@"+router+":/tmp/router2.dump "+bug+"/")
+                do_scp(router, "/tmp/router1.dump", bug+"/")
+                do_scp(router, "/tmp/router2.dump", bug+"/")
 		
 
         if ping_test(server):
@@ -364,7 +436,7 @@ def stop_bug(bug, look_for=["Call Trace:", "kmemleak", "too many of orphaned", "
         elif tcpdump:
                 do_ssh(server, "killall tshark")
                 time.sleep(3)
-                os.system("scp root@"+server+":/tmp/server.dump "+bug+"/")
+                do_scp(server, "/tmp/server.dump", bug+"/")
 
         return failed
 
@@ -634,7 +706,10 @@ def remove_addr():
 #        start_bug("remove_addr", cliport=5001)
 
         fd = open(ifile, 'w')
-        subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 7 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        if kvm:
+            subprocess.Popen("ssh -p 8021 root@127.0.0.1 iperf -c "+server_ip+" -t 7 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        else:
+            subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 7 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
 
         time.sleep(3)
         print "ifconfig "+server_itf1+" down"
@@ -676,19 +751,22 @@ def bbm():
         do_ssh(server, "killall -9 iperf")
         do_ssh_back(server, "iperf -s &")
         do_ssh(server, "ifconfig "+server_itf2+" down")
-	do_ssh(client, "ip route add 10.0.0.0/16 dev eth0")
-	do_ssh(client, "ip route del default")
+        do_ssh(client, "ip route add 10.0.0.0/16 dev eth0")
+        do_ssh(client, "ip route del default")
 
         start_bug("bbm")
 
         fd = open(ifile, 'w')
-        subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 15 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        if kvm:
+            subprocess.Popen("ssh -p 8021 root@127.0.0.1 iperf -c "+server_ip+" -t 15 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        else:
+            subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 15 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
 
         time.sleep(3)
         do_ssh(client, "ip addr del "+client_ip+"/24 dev "+client_itf1)
-	do_ssh(client, "ip route del 10.2.1.0/24 via 10.1.1.2")
+        do_ssh(client, "ip route del 10.2.1.0/24 via 10.1.1.2")
         time.sleep(0.5)
-	do_ssh(client, "ip addr add "+client_ip+"/24 dev "+client_itf1)
+        do_ssh(client, "ip addr add "+client_ip+"/24 dev "+client_itf1)
         do_ssh(client, "ip route add 10.2.1.0/24 via 10.1.1.2")
 
         time.sleep(20)
@@ -733,7 +811,10 @@ def add_addr():
         start_bug("add_addr")
 
         fd = open(ifile, 'w')
-        subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 40 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        if kvm:
+            subprocess.Popen("ssh -p 8021 root@127.0.0.1 iperf -c "+server_ip+" -t 40 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        else:
+            subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 40 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
 
         time.sleep(5)
         print "Remove ip from "+client_itf1
@@ -781,7 +862,10 @@ def add_addr_2():
         #start_bug("add_addr_2", srvport=2002)
 
         fd = open(clifile, 'w')
-        subprocess.Popen("ssh root@"+client+" /root/simple_client/client ", stdout=fd, stderr=fd, shell=True)
+        if kvm:
+            subprocess.Popen("ssh -p 8021 root@127.0.0.1 /root/simple_client/client ", stdout=fd, stderr=fd, shell=True)
+        else:
+            subprocess.Popen("ssh root@"+client+" /root/simple_client/client ", stdout=fd, stderr=fd, shell=True)
 
         time.sleep(5)
         print "Remove ip from "+client_itf1
@@ -839,7 +923,10 @@ def add_addr_3():
         start_bug("add_addr_3")
 
         fd = open(ifile, 'w')
-        subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 40 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        if kvm:
+            subprocess.Popen("ssh -p 8021 root@127.0.0.1 iperf -c "+server_ip+" -t 40 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        else:
+            subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 40 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
 
         time.sleep(5)
         print "Add ip from "+client_itf2
@@ -913,7 +1000,10 @@ def add_addr_4():
         start_bug("add_addr_4")
 
         fd = open(ifile, 'w')
-        subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 40 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        if kvm:
+            subprocess.Popen("ssh -p 8021 root@127.0.0.1 iperf -c "+server_ip+" -t 40 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        else:
+            subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 40 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
 
         time.sleep(5)
         print "Add ip from "+client_itf2
@@ -992,7 +1082,10 @@ def add_addr_5():
 #        start_bug("add_addr_5", cliport=5001)
 
         fd = open(ifile, 'w')
-        subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 20 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        if kvm:
+            subprocess.Popen("ssh -p 8021 root@127.0.0.1 iperf -c "+server_ip+" -t 20 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        else:
+            subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 20 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
 
         time.sleep(1)
         print "Add ip from server "+server_itf2
@@ -1071,7 +1164,10 @@ def add_addr_nosack():
         start_bug("add_addr_nosack")
 
         fd = open(ifile, 'w')
-        subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 10 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        if kvm:
+            subprocess.Popen("ssh -p 8021 root@127.0.0.1 iperf -c "+server_ip+" -t 10 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        else:
+            subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 10 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
 
         time.sleep(2)
         print "Remove ip from "+client_itf1
@@ -1123,7 +1219,10 @@ def link_failure():
         start_bug("link_failure")
 
         fd = open(ifile, 'w')
-        subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 10 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        if kvm:
+            subprocess.Popen("ssh -p 8021 root@127.0.0.1 iperf -c "+server_ip+" -t 10 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        else:
+            subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 10 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
 
         time.sleep(5)
         do_ssh(router, "iptables -A FORWARD -s "+client_ip+" -j DROP")
@@ -1157,7 +1256,10 @@ def link_failure_2():
         time.sleep(5)
 
         fd = open(scpfile, 'w')
-        subprocess.Popen("ssh root@"+client+" scp root@"+server_ip+":/var/www/500MB . ", stdout=fd, stderr=fd, shell=True)
+        if kvm:
+                subprocess.Popen("ssh -p 8021 root@127.0.0.1 scp root@"+server_ip+":/var/www/500MB . ", stdout=fd, stderr=fd, shell=True)
+        else:
+                subprocess.Popen("ssh root@"+client+" scp root@"+server_ip+":/var/www/500MB . ", stdout=fd, stderr=fd, shell=True)
 
         time.sleep(3)
         do_ssh(router, "iptables -A FORWARD -s "+client_ip+" -j DROP")
@@ -1206,7 +1308,10 @@ def link_failure_3():
         start_bug("link_failure_3")
 
         fd = open(clifile, 'w')
-        subprocess.Popen("ssh root@"+client+" /root/simple_client/client ", stdout=fd, stderr=fd, shell=True)
+        if kvm:
+            subprocess.Popen("ssh -p 8021 root@127.0.0.1 /root/simple_client/client ", stdout=fd, stderr=fd, shell=True)
+        else:
+            subprocess.Popen("ssh root@"+client+" /root/simple_client/client ", stdout=fd, stderr=fd, shell=True)
 
         time.sleep(5)
         do_ssh(router, "iptables -A FORWARD -s "+client_ip+" -j DROP")
@@ -1257,7 +1362,10 @@ def pre_close():
         #start_bug("pre_close", cliport=5001)
 
         fd = open(ifile, 'w')
-        subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 20 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        if kvm:
+            subprocess.Popen("ssh -p 8021 root@127.0.0.1 iperf -c "+server_ip+" -t 20 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
+        else:
+            subprocess.Popen("ssh root@"+client+" iperf -c "+server_ip+" -t 20 -y c -P "+str(num), stdout=fd, stderr=fd, shell=True)
 
         time.sleep(10)
 
@@ -1325,6 +1433,8 @@ def so_linger():
         return failed
 
 def srr():
+        if kvm:
+            return False
         failed = False
         num = 1
 
@@ -1521,7 +1631,8 @@ def bug_google():
 def bug_haproxy():
         failed = False
         do_ssh(router, "/usr/sbin/haproxy -f /etc/haproxy/haproxy.cfg_2 -D")
-	time.sleep(1)
+        time.sleep(1)
+        ret = 0
 
         ret = basic_tests(cli1="off", cli2="off", pr11="off", pr12="off", pr21="off", pr22="off", srv1="off", srv2="off", conc="100", num="100000", bug="bug_haproxy", opts=" -X "+router_ip+":3129")
         #ret = basic_tests(cli1="off", cli2="off", pr11="off", pr12="off", pr21="off", pr22="off", srv1="off", srv2="off", conc="100", num="100000", bug="bug_haproxy", opts=" -X "+router_ip+":3129", cliport=3129, srvport=80)
@@ -1534,7 +1645,7 @@ def bug_haproxy():
 
 	if ret == 0:
 	        ret = basic_tests(cli1="off", cli2="off", pr11="off", pr12="off", pr21="off", pr22="off", srv1="off", srv2="off", conc="100", num="10000", bug="bug_haproxy", opts=" -X "+router_ip+":3129", size="300KB")
-	        #ret = basic_tests(cli1="off", cli2="off", pr11="off", pr12="off", pr21="off", pr22="off", srv1="off", srv2="off", conc="100", num="10000", bug="bug_haproxy", opts=" -X "+router_ip+":3129", size="300KB", cliport=3129, srvport=80)
+#	        ret = basic_tests(cli1="off", cli2="off", pr11="off", pr12="off", pr21="off", pr22="off", srv1="off", srv2="off", conc="100", num="10000", bug="bug_haproxy", opts=" -X "+router_ip+":3129", size="300KB", cliport=3129, srvport=80)
 
 	        if ret != 0:
 	                print "+++ ab on 300KB failed"
@@ -1866,7 +1977,6 @@ def do_test(bug):
 
         return False
 
-
 def test_all():
         if do_test(bug_cheng_sbuf):
                 return True
@@ -1920,16 +2030,42 @@ def test_all():
                 return True
         if do_test(bug_ab_lossy):
                 return True
-	if do_test(bug_ab_limited):
-		return True
+        if do_test(bug_ab_limited):
+                return True
         if do_test(simple_iperf_lossy):
                 return True
         if do_test(bug_delay):
                 return True
-	if do_test(test_3gwifi):
-		return True
-	if not slow and do_test(bug_dzats):
-		return True
+        if do_test(test_3gwifi):
+                return True
+        if not slow and do_test(bug_dzats):
+                return True
+
+        return False
+
+def test_addrs():
+        if do_test(remove_addr):
+                return True
+        if do_test(bbm):
+                return True
+        if do_test(add_addr):
+                return True
+        if do_test(add_addr_2):
+                return True
+        if do_test(add_addr_3):
+                return True
+        if do_test(add_addr_4):
+                return True
+        if do_test(add_addr_5):
+                return True
+        if do_test(add_addr_nosack):
+                return True
+        if do_test(link_failure):
+                return True
+        if do_test(link_failure_2):
+                return True
+        if do_test(link_failure_3):
+                return True
 
         return False
 
