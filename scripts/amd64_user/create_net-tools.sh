@@ -2,9 +2,9 @@
 
 set -e
 
-[ $# -ne 1 ] && echo "Usage: $0 [distribution]" && exit
+[ $# -ne 2 ] && echo "Usage: $0 [distribution] [arch]" && exit
 
-AR=amd64
+AR=$2
 DIST=$1
 BASE="/tmp/net-tools"
 CTRL="${BASE}/DEBIAN/control"

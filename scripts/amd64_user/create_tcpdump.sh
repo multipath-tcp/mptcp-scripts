@@ -1,10 +1,10 @@
 #!/bin/bash
 
 set -e
-[ $# -ne 1 ] && echo "Usage: $0 [distribution]" && exit
+[ $# -ne 2 ] && echo "Usage: $0 [distribution] [arch]" && exit
 
 DIST=$1
-AR=amd64
+AR=$2
 BASE="/tmp/tcpdump"
 CTRL="${BASE}/DEBIAN/control"
 DATE=`date +%Y%m%d%H`
