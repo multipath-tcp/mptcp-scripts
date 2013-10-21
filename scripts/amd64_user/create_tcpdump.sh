@@ -7,7 +7,7 @@ DIST=$1
 AR=$2
 BASE="/tmp/tcpdump"
 CTRL="${BASE}/DEBIAN/control"
-DATE=`date +%Y%m%d%H`
+DATE=`date +%Y%m%d%H%M`
 
 cd $HOME/workspace/linux/tcpdump/
 git pull
