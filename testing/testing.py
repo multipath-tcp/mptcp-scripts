@@ -33,7 +33,7 @@ def usage():
         print "--kvm means the kvm virtual testbed"
 
 try:
-        optlist, bugs = getopt.getopt(sys.argv[1:], '', ['kvm', 'gig', 'inl', 'twoinl', 'slow', 'olia','notso','nocsum'])
+        optlist, bugs = getopt.getopt(sys.argv[1:], '', ['kvm', 'gig', 'inl', 'twoinl', 'slow', 'olia','notso','nocsum','ipv6'])
 except  getopt.GetoptError, err:
         # print help information and exit:
         print str(err) # will print something like "option -a not recognized"
@@ -52,6 +52,7 @@ slow = False
 olia = False
 notso = False
 nocsum = False
+ipv6 = False
 
 for o, a in optlist:
         if o == "--kvm":
@@ -70,6 +71,8 @@ for o, a in optlist:
 		notso = True
         if o == "--nocsum":
                 nocsum = True
+        if o == '--ipv6':
+                ipv6 = True
 
 if onehen:
         clientidx = "48"
@@ -145,10 +148,10 @@ elif twoinl:
         server_itf0 = "eth0"
         server_10gitf1 = "eth2"
         server_10gitf2 = "eth3"
-        server_itf1 = "eth6"
-        server_itf2 = "eth7"
-        server_itf3 = "eth4"
-        server_itf4 = "eth5"
+        server_itf1 = "eth9"
+        server_itf2 = "eth8"
+        server_itf3 = "eth11"
+        server_itf4 = "eth10"
 
         client = "comp"+clientidx
         router = "comp"+routeridx
@@ -201,19 +204,23 @@ else:
         router = "computer"+routeridx
         server = "computer"+serveridx
 
-client_ip = "10.1.1.1"
-client_ip2 = "10.1.2.1"
-client_ip3 = "10.1.3.1"
-client_ip4 = "10.1.4.1"
-router_ip = "10.1.1.2"
-router_ip2 = "10.1.2.2"
-router_ip3 = "10.2.1.2"
-router_ip4 = "10.2.2.2"
-server_ip = "10.2.1.1"
-server_ip2 = "10.2.2.1"
-server_ip3 = "10.2.3.1"
-server_ip4 = "10.2.4.1"
-server_ip_10g = "10.2.10.1"
+if not ipv6:
+	client_ip = "10.1.1.1"
+	client_ip2 = "10.1.2.1"
+	client_ip3 = "10.1.3.1"
+	client_ip4 = "10.1.4.1"
+	router_ip = "10.1.1.2"
+	router_ip2 = "10.1.2.2"
+	router_ip3 = "10.2.1.2"
+	router_ip4 = "10.2.2.2"
+	server_ip = "10.2.1.1"
+	server_ip2 = "10.2.2.1"
+	server_ip3 = "10.2.3.1"
+	server_ip4 = "10.2.4.1"
+	server_ip_10g = "10.2.10.1"
+elif ipv6:
+	client_ip = "1111::1111"
+	client_ip2 = "2222::1111"
 
 def do_ssh(host, cmd):
         if kvm:
@@ -343,7 +350,7 @@ def start_bug(bug, cliport = 0, srvport = 0, rtrport1 = 0, rtrport2 = 0):
         else:
             sub_cli = subprocess.Popen(["s",clientidx],stdin=subprocess.PIPE, stdout=cli, stderr=cli)
             sub_srv = subprocess.Popen(["s",serveridx],stdin=subprocess.PIPE, stdout=srv, stderr=srv)
-            sub_rtr = subprocess.Popen(["s",routeridx],stdin=subprocess.PIPE, stdout=pro, stderr=rtr)
+            sub_rtr = subprocess.Popen(["s",routeridx],stdin=subprocess.PIPE, stdout=rtr, stderr=rtr)
 
             time.sleep(5)
 
@@ -553,6 +560,7 @@ def bug_cheng_sbuf():
         do_ssh(client, "sysctl -w net.ipv4.tcp_wmem='1000000 167772160 268435456'")
         do_ssh(server, "sysctl -w net.ipv4.tcp_rmem='1000000 167772160 268435456'")
         do_ssh(client, "sysctl -w net.mptcp.mptcp_ndiffports=16")
+	do_ssh(client, "sysctl -w net.mptcp.mptcp_path_manager='ndiffports'")
 
         start_bug("bug_cheng_sbuf")
         #start_bug("bug_cheng_sbuf", cliport=5001)
@@ -588,6 +596,8 @@ def bug_cheng_sbuf():
         if verif_iperf(ifile, 0.5, 1):
                 failed = True
 
+	do_ssh(client, "sysctl -w net.mptcp.mptcp_path_manager='fullmesh'")
+
         return failed
 
 def simple_iperf():
@@ -597,19 +607,21 @@ def simple_iperf():
 
         do_ssh(server, "killall -9 iperf")
         do_ssh_back(server, "iperf -s -l 500K &")
-	#do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
 
         start_bug("simple_iperf")
+	#start_bug("simple_iperf", cliport=5001)
 
         do_ssh_back(client, "iperf -c "+server_ip+" -t 30 -l 500K -y c -P "+str(num)+" > "+ifile+" &")
+	time.sleep(31)
 
-        time.sleep(40)
+        time.sleep(10)
         do_ssh(client, "killall -9 iperf")
         do_ssh(server, "killall -9 iperf")
         do_ssh(client, "sysctl -p")
         do_ssh(server, "sysctl -p")
 
         if stop_bug("simple_iperf"):
+        #if stop_bug("simple_iperf", tcpdump=True):
                 failed = True
 
         if verif_iperf(ifile, 1.5, num):
@@ -669,16 +681,20 @@ def simple_iperf_lossy():
         do_ssh_back(server, "iperf -s &")
 
         start_bug("simple_iperf_lossy")
+        #start_bug("simple_iperf_lossy", cliport=5001)
 
         do_ssh_back(client, "iperf -c "+server_ip+" -t 30 -y c -P "+str(num)+" > "+ifile+" &")
 
-        time.sleep(40)
+        time.sleep(31)
+	time.sleep(10)
+
         do_ssh(client, "killall -9 iperf")
         do_ssh(server, "killall -9 iperf")
         do_ssh(client, "sysctl -p")
         do_ssh(server, "sysctl -p")
 
         if stop_bug("simple_iperf_lossy"):
+        #if stop_bug("simple_iperf_lossy", tcpdump=True):
                 failed = True
 
         if verif_iperf(ifile, 0.001, num):
@@ -755,6 +771,7 @@ def bbm():
         do_ssh(client, "ip route del default")
 
         start_bug("bbm")
+        #start_bug("bbm", cliport=5001)
 
         fd = open(ifile, 'w')
         if kvm:
@@ -769,7 +786,9 @@ def bbm():
         do_ssh(client, "ip addr add "+client_ip+"/24 dev "+client_itf1)
         do_ssh(client, "ip route add 10.2.1.0/24 via 10.1.1.2")
 
-        time.sleep(20)
+	time.sleep(13)
+
+        time.sleep(5)
         fd.close()
         do_ssh(client, "killall -9 iperf")
         do_ssh(server, "killall -9 iperf")
@@ -777,10 +796,12 @@ def bbm():
         do_ssh(server, "sysctl -p")
 
         if stop_bug("bbm"):
+        #if stop_bug("bbm", tcpdump=True):
                 failed = True
 
         if verif_iperf(ifile, 0.5, num):
                 failed = True
+
 
 	do_ssh(client, "ip route del 10.0.0.0/16")
 	do_ssh(client, "ip route add default via 10.0.0.1")
@@ -799,8 +820,6 @@ def add_addr():
         failed = False
         ifile = "add_addr/iperf_res"
         num = 4
-
-#	do_ssh(client, "sysctl -w net.mptcp.mptcp_enabled=0")
 
         do_ssh(server, "killall -9 iperf")
         do_ssh_back(server, "iperf -s &")
@@ -827,7 +846,9 @@ def add_addr():
         print "Remove ip from "+client_itf2
         do_ssh(client, "ip addr del dev "+client_itf2+" "+client_ip2+"/24")
 
-        time.sleep(40)
+	time.sleep(26)
+
+        time.sleep(15)
         fd.close()
         do_ssh(client, "killall -9 iperf")
         do_ssh(server, "killall -9 iperf")
@@ -839,7 +860,8 @@ def add_addr():
         do_ssh(server, "/root/kill_tc.sh")
 
         if stop_bug("add_addr"):
-        #if stop_bug("add_addr", tcpdump=True):
+#        if stop_bug("add_addr", tcpdump=True):
+
                 failed = True
 
         if verif_iperf(ifile, 0.5, num):
@@ -921,6 +943,7 @@ def add_addr_3():
         do_ssh(client, "ip addr del dev "+client_itf4+" "+client_ip4+"/24")
 
         start_bug("add_addr_3")
+#        start_bug("add_addr_3", cliport=5001)
 
         fd = open(ifile, 'w')
         if kvm:
@@ -951,8 +974,8 @@ def add_addr_3():
         time.sleep(1)
         print "Remove ip from "+client_itf3
         do_ssh(client, "ip addr del dev "+client_itf3+" "+client_ip3+"/24")
-        time.sleep(5)
 
+        time.sleep(5)
         print "Add ip from "+client_itf1
         do_ssh(client, "ip addr add dev "+client_itf1+" "+client_ip+"/24")
         do_ssh(client, "ip route add 10.2.1.0/24 via "+router_ip)
@@ -960,8 +983,8 @@ def add_addr_3():
         print "Remove ip from "+client_itf4
         do_ssh(client, "ip addr del dev "+client_itf4+" "+client_ip4+"/24")
 
-
-        time.sleep(40)
+	time.sleep(17)
+        time.sleep(24)
         fd.close()
         do_ssh(client, "killall -9 iperf")
         do_ssh(server, "killall -9 iperf")
@@ -969,6 +992,7 @@ def add_addr_3():
         do_ssh(server, "sysctl -p")
 
         if stop_bug("add_addr_3"):
+#        if stop_bug("add_addr_3", tcpdump=True):
                 failed = True
 
         if verif_iperf(ifile, 0.5, num):
@@ -998,6 +1022,7 @@ def add_addr_4():
         do_ssh(client, "ip addr del dev "+client_itf4+" "+client_ip4+"/24")
 
         start_bug("add_addr_4")
+#        start_bug("add_addr_4", cliport=5001)
 
         fd = open(ifile, 'w')
         if kvm:
@@ -1038,7 +1063,9 @@ def add_addr_4():
         do_ssh(client, "ip addr del dev "+client_itf4+" "+client_ip4+"/24")
 
 
-        time.sleep(40)
+        time.sleep(17)
+	time.sleep(20)
+
         fd.close()
         do_ssh(client, "killall -9 iperf")
         do_ssh(server, "killall -9 iperf")
@@ -1046,6 +1073,7 @@ def add_addr_4():
         do_ssh(server, "sysctl -p")
 
         if stop_bug("add_addr_4"):
+#        if stop_bug("add_addr_4", tcpdump=True):
                 failed = True
 
         if verif_iperf(ifile, 0.4, num):
@@ -1215,7 +1243,7 @@ def link_failure():
         do_ssh_back(server, "iperf -s &")
         #do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
 
-        #start_bug("link_failure", cliport=5001)
+#        start_bug("link_failure", cliport=5001)
         start_bug("link_failure")
 
         fd = open(ifile, 'w')
@@ -1227,9 +1255,9 @@ def link_failure():
         time.sleep(5)
         do_ssh(router, "iptables -A FORWARD -s "+client_ip+" -j DROP")
 	time.sleep(1)
-	#do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
 
-        time.sleep(10)
+	time.sleep(5)
+        time.sleep(6)
         fd.close()
         do_ssh(client, "killall -9 iperf")
         do_ssh(server, "killall -9 iperf")
@@ -1237,7 +1265,7 @@ def link_failure():
         do_ssh(server, "sysctl -p")
 
         if stop_bug("link_failure"):
-        #if stop_bug("link_failure", tcpdump=True):
+#       if stop_bug("link_failure", tcpdump=True):
                 failed = True
 
         if verif_iperf(ifile, 0.5, num):
@@ -1597,14 +1625,16 @@ def bug_google():
         do_ssh(client, "/root/setup_rfs")
         do_ssh(server, "/root/setup_rfs")
 
-        do_ssh(client, "sysctl -w net.ipv4.tcp_wmem='4096    16384   14194304'")
-        do_ssh(server, "sysctl -w net.ipv4.tcp_rmem='4096    16384   14194304'")
+        do_ssh(client, "sysctl -w net.ipv4.tcp_wmem='4096    16384   4194304'")
+        do_ssh(server, "sysctl -w net.ipv4.tcp_rmem='4096    16384   4194304'")
 
         start_bug("bug_google")
+        #start_bug("bug_google", cliport=5001)
 
         do_ssh_back(client, "iperf -c "+server_ip+" -y c -t 30 > "+ifile+" &")
 
-        time.sleep(40)
+	time.sleep(31)
+        time.sleep(9)
 
         # FINISH
         do_ssh(client, "killall -9 iperf")
@@ -1613,6 +1643,7 @@ def bug_google():
         do_ssh(server, "sysctl -p")
 
         if stop_bug("bug_google"):
+        #if stop_bug("bug_google", tcpdump=True):
                 failed = True
 
         if verif_iperf(ifile, 1.2, 1):
@@ -1829,8 +1860,6 @@ def test_3gwifi():
                 failed = True
 
         return failed
-
-        
 
 def basic_tests(climpc="1", srvmpc="1", cli1="on", cli2="on", pr11="on", pr12="on", pr21="on", pr22="on", srv1="on", srv2="on", conc="1", num="1", bug = "basic_tests", size="1KB", opts="", cliport=0, srvport=0, rtrport1=0, rtrport2=0):
         failed = False
@@ -2073,34 +2102,34 @@ failed_bugs = []
 
 # Global prepare setup
 do_ssh(client, "iptables -F")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.1.2.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.2.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.3.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.4.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.10.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.11.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.1.2.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.2.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.3.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.4.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.10.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.1.1 -d 10.2.11.0/24 -j REJECT")
 
-do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.1.1.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.1.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.3.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.4.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.10.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.11.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.1.1.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.1.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.3.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.4.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.10.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.2.1 -d 10.2.11.0/24 -j REJECT")
 
-do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.1.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.2.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.4.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.10.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.11.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.1.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.2.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.4.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.10.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.3.1 -d 10.2.11.0/24 -j REJECT")
 
-do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.1.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.2.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.3.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.10.0/24 -j DROP")
-do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.11.0/24 -j DROP")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.1.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.2.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.3.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.10.0/24 -j REJECT")
+do_ssh(client, "iptables -A OUTPUT -s 10.1.4.1 -d 10.2.11.0/24 -j REJECT")
 
-do_ssh(router, "iptables -A OUTPUT -s 10.2.10.0/24 -d 10.2.11.0/24 -j DROP")
-do_ssh(router, "iptables -A OUTPUT -s 10.2.11.0/24 -d 10.2.10.0/24 -j DROP")
+do_ssh(router, "iptables -A OUTPUT -s 10.2.10.0/24 -d 10.2.11.0/24 -j REJECT")
+do_ssh(router, "iptables -A OUTPUT -s 10.2.11.0/24 -d 10.2.10.0/24 -j REJECT")
 
 do_ssh(client, "ip link set dev "+client_itf1+" multipath on")
 do_ssh(client, "ip link set dev "+client_itf2+" multipath on")
