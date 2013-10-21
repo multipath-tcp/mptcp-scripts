@@ -22,7 +22,7 @@ DESTDIR=$BASE make install
 mkdir $BASE/DEBIAN
 
 echo "Package: iproute" >> $CTRL
-echo "Version: ${DATE}-${DIST}" >> $CTRL
+echo "Version: 3.11.${DATE}-${DIST}" >> $CTRL
 echo "Architecture: $AR" >> $CTRL
 echo "Maintainer: Christoph Paasch <christoph.paasch@uclouvain.be>" >> $CTRL
 #echo "Installed-Size: 1092" >> $CTRL
