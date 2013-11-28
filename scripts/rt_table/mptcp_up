@@ -29,7 +29,7 @@ if [ $DHCP4_IP_ADDRESS ]; then
 else
 	# PPP-interface
 	IPADDR=`echo $IP4_ADDRESS_0 | cut -d \   -f 1 | cut -d / -f 1`
-	ip route add table $DEVICE_IFACE default dev $DEVICE_IFACE scope link
+	ip route add table $DEVICE_IFACE default dev $DEVICE_IP_IFACE scope link
 	ip rule add from $IPADDR table $DEVICE_IFACE
 fi
 
