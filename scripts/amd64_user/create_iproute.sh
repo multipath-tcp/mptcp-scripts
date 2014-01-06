@@ -5,7 +5,14 @@ set -e
 
 DIST=$1
 AR=$2
-BASE="/tmp/iproute"
+if [ $DIST == "saucy" ]
+then
+	BASE="/tmp/iproute2"
+	PKG="iproute2"
+else
+	BASE="/tmp/iproute"
+	PKG="iproute"
+fi
 CTRL="${BASE}/DEBIAN/control"
 DATE=`date +%Y%m%d%H%M`
 
@@ -22,13 +29,13 @@ DESTDIR=$BASE make install
 
 mkdir $BASE/DEBIAN
 
-echo "Package: iproute2" >> $CTRL
+echo "Package: $PKG" >> $CTRL
 echo "Version: 3.11.${DATE}-${DIST}" >> $CTRL
 echo "Architecture: $AR" >> $CTRL
 echo "Maintainer: Christoph Paasch <christoph.paasch@uclouvain.be>" >> $CTRL
 #echo "Installed-Size: 1092" >> $CTRL
 echo "Depends: libc6 (>= 2.11), libdb5.1" >> $CTRL
-echo "Conflicts: arpd, iproute" >> $CTRL
+echo "Conflicts: arpd" >> $CTRL
 echo "Provides: arpd" >> $CTRL
 echo "Section: net" >> $CTRL
 echo "Priority: important" >> $CTRL
@@ -44,7 +51,32 @@ echo " ." >> $CTRL
 echo " This tool is extended for MultiPath TCP!!!" >> $CTRL
 
 cd /tmp/
-dpkg -b iproute
+dpkg -b $PKG
+
+
+echo "DONE FIRST PART"
+
+if [ $DIST == "saucy" ]
+then
+	BASE="/tmp/iproute"
+	rm -Rf $BASE
+	mkdir $BASE
+	mkdir $BASE/DEBIAN
+	CTRL="${BASE}/DEBIAN/control"
+	echo "Package: iproute" >> $CTRL
+	echo "Version: 1:3.11.${DATE}-${DIST}" >> $CTRL
+	echo "Architecture: $AR" >> $CTRL
+	echo "Maintainer: Christoph Paasch <christoph.paasch@uclouvain.be>" >> $CTRL
+	echo "Depends: iproute2" >> $CTRL
+	echo "Section: net" >> $CTRL
+	echo "Priority: important" >> $CTRL
+	echo "Description: transitional dummy package for iproute2" >> $CTRL
+	echo " This is a transitional dummy package to get upgrading systems to install the iproute2 package. It can safely be removed." >> $CTRL
+	echo "Homepage: http://mptcp.info.ucl.ac.be" >> $CTRL
+
+	cd /tmp/
+	dpkg -b iproute
+fi	
 
 # install everything
 ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/*.deb"

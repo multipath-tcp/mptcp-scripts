@@ -10,7 +10,7 @@ CTRL="${BASE}/DEBIAN/control"
 DATE=`date +%Y%m%d%H%M`
 
 cd $HOME/workspace/linux/tcpdump/
-git pull
+#git pull
 
 rm -Rf $BASE
 mkdir $BASE
@@ -26,7 +26,7 @@ echo "Version: 5-${DATE}-${DIST}" >> $CTRL
 echo "Architecture: $AR" >> $CTRL
 echo "Maintainer: Christoph Paasch <christoph.paasch@uclouvain.be>" >> $CTRL
 #echo "Installed-Size: 1092" >> $CTRL
-echo "Depends: libc6 (>= 2.14), libpcap0.8 (>= 1.2.1), libssl1.0.0 (>= 1.0.0), libsmi2ldbl" >> $CTRL
+echo "Depends: libc6 (>= 2.14), libpcap0.8 (>= 1.2.1), libssl1.0.0 (>= 1.0.0), libdnet (>= 2.61)" >> $CTRL
 echo "Section: net" >> $CTRL
 echo "Priority: important" >> $CTRL
 echo "Homepage: http://multipath-tcp.org" >> $CTRL
