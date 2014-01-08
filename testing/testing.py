@@ -148,8 +148,8 @@ elif twoinl:
         server_itf0 = "eth0"
         server_10gitf1 = "eth2"
         server_10gitf2 = "eth3"
-        server_itf1 = "eth9"
-        server_itf2 = "eth8"
+        server_itf1 = "eth8"
+        server_itf2 = "eth9"
         server_itf3 = "eth11"
         server_itf4 = "eth10"
 
@@ -607,14 +607,14 @@ def simple_iperf():
 
         do_ssh(server, "killall -9 iperf")
         do_ssh_back(server, "iperf -s -l 500K &")
-
+	
         start_bug("simple_iperf")
 	#start_bug("simple_iperf", cliport=5001)
 
         do_ssh_back(client, "iperf -c "+server_ip+" -t 30 -l 500K -y c -P "+str(num)+" > "+ifile+" &")
-	time.sleep(31)
+	time.sleep(30)
 
-        time.sleep(10)
+        time.sleep(5)
         do_ssh(client, "killall -9 iperf")
         do_ssh(server, "killall -9 iperf")
         do_ssh(client, "sysctl -p")
@@ -731,7 +731,7 @@ def remove_addr():
         print "ifconfig "+server_itf1+" down"
         do_ssh(server, "ip addr del "+server_ip+"/24 dev "+server_itf1)
 
-        time.sleep(10)
+        time.sleep(7)
         fd.close()
         do_ssh(client, "killall -9 iperf")
         do_ssh(server, "killall -9 iperf")
@@ -767,7 +767,7 @@ def bbm():
         do_ssh(server, "killall -9 iperf")
         do_ssh_back(server, "iperf -s &")
         do_ssh(server, "ifconfig "+server_itf2+" down")
-        do_ssh(client, "ip route add 10.0.0.0/16 dev eth0")
+        do_ssh(client, "ip route add 10.0.0.0/16 dev "+client_itf0)
         do_ssh(client, "ip route del default")
 
         start_bug("bbm")
@@ -1447,12 +1447,14 @@ def so_linger():
         do_ssh_back(server, "/root/simple_server/server_linger &")
 
         start_bug("so_linger")
+        #start_bug("so_linger", cliport=2002)
 
         do_ssh(client, "/root/simple_client/client_linger")
 
         # Give the meta some time
         time.sleep(10)
         if stop_bug("so_linger", must_be_client=["destroying meta-sk"], must_be_server=["destroying meta-sk"]):
+        #if stop_bug("so_linger", must_be_client=["destroying meta-sk"], must_be_server=["destroying meta-sk"], tcpdump=True):
                 failed = True
 
         do_ssh(client, "sysctl -p")
@@ -1482,37 +1484,6 @@ def srr():
         if stop_bug("srr", must_be_client=["destroying meta-sk"], must_be_server=["destroying meta-sk"]):
                 failed = True
 
-        do_ssh(client, "sysctl -p")
-        do_ssh(server, "sysctl -p")
-
-        return failed
-
-
-def iperf_srr():
-        failed = False
-        num = 1
-
-        do_ssh(client, "killall -9 iperf")
-        do_ssh(server, "killall -9 iperf")
-        do_ssh(client, "sysctl -w net.mptcp.mptcp_enabled=0")
-        #do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
-        #do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
-        do_ssh(client, "sysctl -w net.ipv4.conf.all.accept_source_route=1")
-        do_ssh(router, "sysctl -w net.ipv4.conf.all.accept_source_route=1")
-        do_ssh(server, "sysctl -w net.ipv4.conf.all.accept_source_route=1")
-        do_ssh_back(server, "iperf -s &")
-
-        start_bug("iperf_srr")
-
-        do_ssh(client, "/root/iperf -c "+server_ip+" -t 1 -A "+router_ip)
-
-        # Give the meta some time
-        time.sleep(5)
-        if stop_bug("iperf_srr"):
-                failed = True
-
-        do_ssh(client, "killall -9 iperf")
-        do_ssh(server, "killall -9 iperf")
         do_ssh(client, "sysctl -p")
         do_ssh(server, "sysctl -p")
 
@@ -1590,10 +1561,46 @@ def simple_ab():
 
         return failed
 
+def simple_abndiff():
+        failed = False
+
+        start_bug("simple_abndiff")
+        do_ssh(client, "sysctl -w net.mptcp.mptcp_ndiffports=8")
+	do_ssh(client, "sysctl -w net.mptcp.mptcp_path_manager='ndiffports'")
+
+        ret = do_ssh(client, "ab -c 100 -n 100000 "+server_ip+"/1KB")
+
+        if ret != 0 and not slow:
+                failed = True
+                print "+++ apache-benchmark failed"
+
+        ret = do_ssh(client, "ab -c 100 -n 50000 "+server_ip+"/50KB")
+
+        if ret != 0 and not slow:
+                failed = True
+                print "+++ apache-benchmark failed"
+
+        ret = do_ssh(client, "ab -c 100 -n 10000 "+server_ip+"/300KB")
+
+        if ret != 0 and not slow:
+                failed = True
+                print "+++ apache-benchmark failed"
+
+        do_ssh(client, "sysctl -p")
+        do_ssh(server, "sysctl -p")
+
+        if stop_bug("simple_abndiff"):
+                failed = True
+
+	do_ssh(client, "sysctl -w net.mptcp.mptcp_path_manager='fullmesh'")
+
+        return failed
+
 def ab_300():
         failed = False
 
         start_bug("ab_300")
+	do_ssh(server, "ifconfig "+server_itf2+" mtu 1460")
 
         ret = do_ssh(client, "ab -c 100 -n 10000 "+server_ip+"/300KB")
 
@@ -1606,6 +1613,8 @@ def ab_300():
 
         if stop_bug("ab_300"):
                 failed = True
+
+	do_ssh(server, "ifconfig "+server_itf2+" mtu 1500")
 
         return failed
 
