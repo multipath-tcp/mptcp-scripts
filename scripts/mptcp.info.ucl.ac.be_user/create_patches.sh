@@ -9,7 +9,8 @@ trap "cat $logfile | uuencode $logfile | mailx -s \"$file failed\" christoph.paa
 function gen_patch {
 	VERSION=`git log -n1 --first-parent --oneline --grep="Merge tag" | cut -d "'" -f2 | cut -d "'" -f1`
 
-	git diff $VERSION > /home/ftp/mptcp-patches/mptcp-${VERSION}.patch
+	rm /home/ftp/mptcp-patches/mptcp-${VERSION}-*.patch
+	git diff $VERSION > /home/ftp/mptcp-patches/mptcp-${VERSION}-`git rev-parse --short HEAD`.patch
 }
 
 function repo {
