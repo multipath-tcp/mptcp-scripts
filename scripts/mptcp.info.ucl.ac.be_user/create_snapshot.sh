@@ -4,7 +4,7 @@
 file=`basename $0`
 logfile=/tmp/${file}.log
 exec > $logfile 2>&1
-trap "cat $logfile | uuencode $logfile | mail -s \"$file failed\" christoph.paasch@gmail.com ; exit 1" ERR
+trap "cat $logfile | uuencode $logfile | mailx -s \"$file failed\" christoph.paasch@gmail.com ; exit 1" ERR
 
 cd $HOME/mtcp/
 

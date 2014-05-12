@@ -6,7 +6,7 @@
 if [ -f $HOME/send_alert ]
 then
 	rm $HOME/send_alert
-	mutt -s "mptcp.info.ucl.ac.be rebooted" -- christoph.paasch@uclouvain.be < $HOME/mail
+	mailx -s "mptcp.info.ucl.ac.be rebooted" christoph.paasch@gmail.com
 fi
 
 # This was used to check if update_mirror.sh run
