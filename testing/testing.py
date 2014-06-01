@@ -33,7 +33,7 @@ def usage():
         print "--kvm means the kvm virtual testbed"
 
 try:
-        optlist, bugs = getopt.getopt(sys.argv[1:], '', ['kvm', 'gig', 'inl', 'twoinl', 'slow', 'olia','notso','nocsum','ipv6'])
+        optlist, bugs = getopt.getopt(sys.argv[1:], '', ['kvm', 'gig', 'inl', 'twoinl', 'slow', 'olia', 'wvegas', 'cubic', 'notso','nocsum','ipv6'])
 except  getopt.GetoptError, err:
         # print help information and exit:
         print str(err) # will print something like "option -a not recognized"
@@ -50,6 +50,8 @@ twoinl = False
 kvm = False
 slow = False
 olia = False
+wvegas = False
+cubic = False
 notso = False
 nocsum = False
 ipv6 = False
@@ -67,6 +69,10 @@ for o, a in optlist:
                 slow = True
         if o == "--olia":
                 olia = True
+        if o == "--wvegas":
+                wvegas = True
+        if o == "--cubic":
+                cubic = True
 	if o == "--notso":
 		notso = True
         if o == "--nocsum":
@@ -305,7 +311,7 @@ def ping_test(host):
             ret = os.system("ssh -o ServerAliveInterval=10 -o ServerAliveCountMax=2 -p "+port+" root@127.0.0.1 echo 0")
         return ret != 0
 
-def start_bug(bug, cliport = 0, srvport = 0, rtrport1 = 0, rtrport2 = 0):
+def start_bug(bug, cliport = 0, srvport = 0, rtrport1 = 0, rtrport2 = 0, filt_prefix=""):
         global sub_cli
         global sub_rtr
         global sub_srv
@@ -324,13 +330,13 @@ def start_bug(bug, cliport = 0, srvport = 0, rtrport1 = 0, rtrport2 = 0):
         os.system("mkdir "+bug)
 
 	if cliport != 0:
-		do_ssh_back(client, "tshark -s 150 -i any -n -w /tmp/client.dump tcp port "+str(cliport)+" &")
+		do_ssh_back(client, "tshark -s 150 -i any -n -w /tmp/client.dump tcp "+filt_prefix+" port "+str(cliport)+" &")
 	if srvport != 0:
-		do_ssh_back(server, "tshark -s 150 -i any -n -w /tmp/server.dump tcp port "+str(srvport)+" &")
+		do_ssh_back(server, "tshark -s 150 -i any -n -w /tmp/server.dump tcp "+filt_prefix+" port "+str(srvport)+" &")
 	if rtrport1 != 0:
-		do_ssh_back(router, "tshark -s 150 -i any -n -w /tmp/router1.dump tcp port "+str(rtrport1)+" &")
+		do_ssh_back(router, "tshark -s 150 -i any -n -w /tmp/router1.dump tcp "+filt_prefix+" port "+str(rtrport1)+" &")
 	if rtrport2 != 0:
-		do_ssh_back(router, "tshark -s 150 -i any -n -w /tmp/router2.dump tcp port "+str(rtrport2)+" &")
+		do_ssh_back(router, "tshark -s 150 -i any -n -w /tmp/router2.dump tcp "+filt_prefix+" port "+str(rtrport2)+" &")
 
         do_ssh(client, "echo '1' > /proc/sys/net/mptcp/mptcp_reset_snmp")
         do_ssh(router, "echo '1' > /proc/sys/net/mptcp/mptcp_reset_snmp")
@@ -378,9 +384,9 @@ def kill_serial(proc):
 def stop_bug(bug, look_for=["Call Trace:", "kmemleak", "too many of orphaned", "mptcp_fallback_infinite", "mptcp_prevalidate_skb"], must_be_client=[], must_be_router=[], must_be_server=[], tcpdump = False):
         failed = False
 
-        do_ssh(client, "ip route flush cache")
-        do_ssh(router, "ip route flush cache")
-        do_ssh(server, "ip route flush cache")
+        do_ssh(client, "ip tcp_metrics flush")
+        do_ssh(router, "ip tcp_metrics flush")
+        do_ssh(server, "ip tcp_metrics flush")
 
         get_netstat_final(client, bug)
         get_netstat_final(router, bug)
@@ -517,6 +523,8 @@ def verif_iperf(fname, mingb, times):
         failed = False
         speed = 0
 
+        if not nocsum:
+                mingb /= 2
         if slow:
                 mingb = 0.001
 
@@ -904,13 +912,14 @@ def add_addr_2():
         fd.close()
 
         fd = open(clifile)
+        found = False
         for l in fd:
-                if l.find("DONE") == -1:
-                        print "+++ client did not finish!!!"
-                        failed = True
-
+                if l.find("DONE") != -1:
+                        found = True
                 break
-
+        if not found:
+                print "+++ client did not finish!!!"
+                failed = True
         fd.close()
 
         do_ssh(client, "killall client")
@@ -926,6 +935,61 @@ def add_addr_2():
         do_ssh(client, "/etc/init.d/networking restart")
 
         return failed
+
+# The test's goal is to remove a flow with "multipath off" and add it back again with "multipath on"
+def add_addr_6():
+        failed = False
+        clifile = "add_addr_6/cli_file"
+
+        do_ssh_back(server, "/root/simple_server/server &")
+
+        start_bug("add_addr_6")
+        #start_bug("add_addr_6", cliport=2002)
+
+        fd = open(clifile, 'w')
+        if kvm:
+            subprocess.Popen("ssh -p 8021 root@127.0.0.1 /root/simple_client/client ", stdout=fd, stderr=fd, shell=True)
+        else:
+            subprocess.Popen("ssh root@"+client+" /root/simple_client/client ", stdout=fd, stderr=fd, shell=True)
+
+        time.sleep(5)
+        print "multipath off itf "+client_itf1
+        do_ssh(client, "ip link set dev "+client_itf1+" multipath off")
+        time.sleep(5)
+        print "multipath on itf "+client_itf1
+        do_ssh(client, "ip link set dev "+client_itf1+" multipath on")
+        time.sleep(5)
+        print "Remove ip from "+client_itf2
+        do_ssh(client, "ip addr del dev "+client_itf2+" "+client_ip2+"/24")
+
+        time.sleep(20)
+        fd.close()
+
+        fd = open(clifile)
+        found = False
+        for l in fd:
+                if l.find("DONE") != -1:
+                        found = True
+                break
+        if not found:
+                print "+++ client did not finish!!!"
+                failed = True
+        fd.close()
+
+        do_ssh(client, "killall client")
+        do_ssh(server, "killall server")
+
+        do_ssh(client, "sysctl -p")
+        do_ssh(server, "sysctl -p")
+
+        if stop_bug("add_addr_6"):
+        #if stop_bug("add_addr_6", tcpdump=True):
+                failed = True
+
+        do_ssh(client, "/etc/init.d/networking restart")
+
+        return failed
+
 
 def add_addr_3():
         failed = False
@@ -1091,7 +1155,10 @@ def add_addr_4():
 def add_addr_5():
         failed = False
         ifile = "add_addr_5/iperf_res"
-        num = 4
+        num = 1
+
+#        start_bug("add_addr_5")
+        start_bug("add_addr_5", srvport=5001, filt_prefix="src")
 
         do_ssh(server, "killall -9 iperf")
         do_ssh_back(server, "iperf -s &")
@@ -1103,11 +1170,11 @@ def add_addr_5():
         do_ssh(server, "ip addr del dev "+server_itf3+" "+server_ip3+"/24")
         do_ssh(server, "ip addr del dev "+server_itf4+" "+server_ip4+"/24")
 
+	time.sleep(5)
+
 #	do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
 #	do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
 
-        start_bug("add_addr_5")
-#        start_bug("add_addr_5", cliport=5001)
 
         fd = open(ifile, 'w')
         if kvm:
@@ -1161,8 +1228,8 @@ def add_addr_5():
         do_ssh(router, "/root/kill_tc.sh")
         do_ssh(server, "/root/kill_tc.sh")
 
-        if stop_bug("add_addr_5"):
-#        if stop_bug("add_addr_5", tcpdump=True):
+#        if stop_bug("add_addr_5"):
+        if stop_bug("add_addr_5", tcpdump=True):
                 failed = True
 
         if verif_iperf(ifile, 0.4, num):
@@ -1323,8 +1390,8 @@ def link_failure_2():
 def link_failure_3():
         failed = False
         clifile = "link_failure_3/clifile"
-        do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
-        do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
+#        do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
+#        do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
         do_ssh(client, "sysctl -w net.ipv4.tcp_retries2=3")
         do_ssh(server, "sysctl -w net.ipv4.tcp_retries2=3")
 
@@ -1348,30 +1415,82 @@ def link_failure_3():
 
         fd.close()
 
+        fd = open(clifile)
+        found = False
+        for l in fd:
+                if l.find("DONE") != -1:
+                        found = True
+                break
+        if not found:
+                print "+++ client did not finish!!!"
+                failed = True
+        fd.close()
+
+        do_ssh(router, "iptables -F FORWARD")
+
+        time.sleep(20)
+
+        do_ssh(client, "killall client")
+        do_ssh(server, "killall server")
+
+#        do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=0")
+#        do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=0")
+        do_ssh(client, "sysctl -w net.ipv4.tcp_retries2=15")
+        do_ssh(server, "sysctl -w net.ipv4.tcp_retries2=15")
+
+        do_ssh(router, "/root/kill_tc.sh")
+
         #if stop_bug("link_failure_3",must_be_client=["destroying meta-sk"], must_be_server=["destroying meta-sk"]):
         #if stop_bug("link_failure_3", tcpdump=True):
         if stop_bug("link_failure_3"):
                 failed = True
 
+        return failed
+
+# The goal here is to do a download while removing an interface and having the other interface be in backup-mode.
+# The remove-address message must be sent on the backup-subflow.
+def link_failure_4():
+        failed = False
+        clifile = "link_failure_4/clifile"
+
+        do_ssh(router, "tc qdisc add dev "+router_itf12+" root netem delay 100ms limit 1000")
+        do_ssh(router, "tc qdisc add dev "+router_itf22+" root netem delay 100ms limit 1000")
+        do_ssh(client, "ip link set dev "+client_itf2+" multipath backup")
+        do_ssh_back(server, "/root/simple_server/server &")
+
+        start_bug("link_failure_4")
+
+        fd = open(clifile, 'w')
+        if kvm:
+            subprocess.Popen("ssh -p 8021 root@127.0.0.1 /root/simple_client/client ", stdout=fd, stderr=fd, shell=True)
+        else:
+            subprocess.Popen("ssh root@"+client+" /root/simple_client/client ", stdout=fd, stderr=fd, shell=True)
+
+        time.sleep(5)
+        do_ssh(client, "ifconfig "+client_itf1+" down")
+
+        time.sleep(40)
+
+        fd.close()
+
+        if stop_bug("link_failure_4"):
+                failed = True
+
         fd = open(clifile)
+        found = False
         for l in fd:
-                if l.find("DONE") == -1:
-                        print "+++ client did not finish!!!"
-                        failed = True
-
+                if l.find("DONE") != -1:
+                        found = True
                 break
-
+        if not found:
+                print "+++ client did not finish!!!"
+                failed = True
         fd.close()
 
         do_ssh(client, "killall client")
         do_ssh(server, "killall server")
 
-        do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=0")
-        do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=0")
-        do_ssh(client, "sysctl -w net.ipv4.tcp_retries2=15")
-        do_ssh(server, "sysctl -w net.ipv4.tcp_retries2=15")
-
-        do_ssh(router, "iptables -F FORWARD")
+        do_ssh(client, "/etc/init.d/networking restart")
         do_ssh(router, "/root/kill_tc.sh")
 
         return failed
@@ -1459,6 +1578,54 @@ def so_linger():
 
         do_ssh(client, "sysctl -p")
         do_ssh(server, "sysctl -p")
+
+        return failed
+
+# stresses tcp_disconnect. by adding a subflow and then calling close on the listen-sock.
+def mutex_bug():
+        failed = False
+
+        do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
+        do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
+        start_bug("mutex_bug")
+
+        do_ssh_back(server, "/root/simple_server/server_mutex &")
+	time.sleep(1)
+        do_ssh(client, "/root/simple_client/client_mutex")
+
+        time.sleep(15)
+        if stop_bug("mutex_bug", must_be_client=["destroying meta-sk"], must_be_server=["destroying meta-sk"]):
+                failed = True
+
+        do_ssh(client, "sysctl -p")
+        do_ssh(server, "sysctl -p")
+
+        return failed
+
+# Fallback-bug, stresses the seamless fallback to infinite at the beginning.
+# It forces the sending of a RST from meta by not reading the client-socket's receive-queue.
+def fallback_bug():
+        failed = False
+
+	do_ssh(router, "iptables -t mangle -A FORWARD -d "+server_ip+" -p tcp ! --syn -j TCPOPTSTRIP --strip-options 30")
+	do_ssh(router, "iptables -A FORWARD -s "+server_ip+" -p tcp --tcp-flags RST RST -j DROP")
+	do_ssh(client, "sysctl -w net.ipv4.tcp_orphan_retries=1")
+
+        start_bug("fallback_bug")
+
+        do_ssh_back(server, "/root/simple_server/server_fallback &")
+	time.sleep(1)
+        do_ssh(client, "/root/simple_client/client_fallback")
+
+        time.sleep(15)
+        if stop_bug("fallback_bug", look_for=["Call Trace:", "kmemleak", "too many of orphaned"]):
+                failed = True
+
+        do_ssh(client, "sysctl -p")
+        do_ssh(server, "sysctl -p")
+	do_ssh(client, "sysctl -w net.ipv4.tcp_orphan_retries=0")
+	do_ssh(router, "iptables -t mangle -D FORWARD -d "+server_ip+" -p tcp ! --syn -j TCPOPTSTRIP --strip-options 30")
+	do_ssh(router, "iptables -D FORWARD -s "+server_ip+" -p tcp --tcp-flags RST RST -j DROP")
 
         return failed
 
@@ -1596,9 +1763,51 @@ def simple_abndiff():
 
         return failed
 
+def max_addr():
+	failed = False
+	do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
+	start_bug("max_addr")
+
+	do_ssh(client, "ip addr add dev "+client_itf1+" 10.42.1.1/24")
+	do_ssh(client, "ip addr add dev "+client_itf1+" 10.42.1.2/24")
+	do_ssh(client, "ip addr add dev "+client_itf1+" 10.42.1.3/24")
+	do_ssh(client, "ip addr add dev "+client_itf1+" 10.42.1.4/24")
+	do_ssh(client, "ip addr add dev "+client_itf1+" 10.42.1.5/24")
+	do_ssh(client, "ip addr add dev "+client_itf1+" 10.42.1.6/24")
+	do_ssh(client, "ip addr add dev "+client_itf1+" 10.42.1.7/24")
+
+	if stop_bug("max_addr", must_be_client=["mptcp_address_worker no more space"]):
+		failed = True
+
+	do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=0")
+	do_ssh(client, "/etc/init.d/networking restart")
+
+	return failed
+
+def max_addr_below():
+	failed = False
+	do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
+	start_bug("max_addr_below")
+
+	do_ssh(client, "ip addr add dev "+client_itf1+" 10.42.1.1/24")
+	do_ssh(client, "ip addr add dev "+client_itf1+" 10.42.1.2/24")
+	do_ssh(client, "ip addr add dev "+client_itf1+" 10.42.1.3/24")
+	do_ssh(client, "ip addr add dev "+client_itf1+" 10.42.1.4/24")
+	do_ssh(client, "ip addr add dev "+client_itf1+" 10.42.1.5/24")
+	do_ssh(client, "ip addr add dev "+client_itf1+" 10.42.1.6/24")
+
+	if stop_bug("max_addr_below", look_for=["Call Trace:", "kmemleak", "too many of orphaned", "mptcp_fallback_infinite", "mptcp_prevalidate_skb", "mptcp_address_worker no more space"]):
+		failed = True
+
+	do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=0")
+	do_ssh(client, "/etc/init.d/networking restart")
+
+	return failed
+
 def ab_300():
         failed = False
 
+        #start_bug("ab_300", cliport=80, srvport=80)
         start_bug("ab_300")
 	do_ssh(server, "ifconfig "+server_itf2+" mtu 1460")
 
@@ -1612,6 +1821,7 @@ def ab_300():
         do_ssh(server, "sysctl -p")
 
         if stop_bug("ab_300"):
+        #if stop_bug("ab_300", tcpdump=True):
                 failed = True
 
 	do_ssh(server, "ifconfig "+server_itf2+" mtu 1500")
@@ -1634,8 +1844,8 @@ def bug_google():
         do_ssh(client, "/root/setup_rfs")
         do_ssh(server, "/root/setup_rfs")
 
-        do_ssh(client, "sysctl -w net.ipv4.tcp_wmem='4096    16384   4194304'")
-        do_ssh(server, "sysctl -w net.ipv4.tcp_rmem='4096    16384   4194304'")
+        do_ssh(client, "sysctl -w net.ipv4.tcp_wmem='16777216 16777216 16777216'")
+        do_ssh(server, "sysctl -w net.ipv4.tcp_rmem='16777216 16777216 16777216'")
 
         start_bug("bug_google")
         #start_bug("bug_google", cliport=5001)
@@ -1655,7 +1865,7 @@ def bug_google():
         #if stop_bug("bug_google", tcpdump=True):
                 failed = True
 
-        if verif_iperf(ifile, 1.2, 1):
+        if verif_iperf(ifile, 2, 1):
                 failed = True
 
         do_ssh(client, "ip link set dev "+client_itf3+" multipath off")
@@ -1850,7 +2060,8 @@ def test_3gwifi():
         do_ssh(server, "tc qdisc del dev "+server_itf2+" root")
         
         do_ssh_back(server, "iperf -s &")
-        start_bug("test_3gwifi")
+        #start_bug("test_3gwifi")
+        start_bug("test_3gwifi", cliport = 5001)
 
         ret = do_ssh_back(client, "iperf -c "+server_ip+" -y c -t 30 > "+ifile)
 
@@ -1865,7 +2076,8 @@ def test_3gwifi():
 
         do_ssh(router, "/root/kill_tc.sh")
 
-        if stop_bug("test_3gwifi"):
+        #if stop_bug("test_3gwifi"):
+        if stop_bug("test_3gwifi", tcpdump = True):
                 failed = True
 
         return failed
@@ -2038,6 +2250,8 @@ def test_all():
                 return True
         if do_test(add_addr_5):
                 return True
+        if do_test(add_addr_6):
+                return True
         if do_test(add_addr_nosack):
                 return True
         if do_test(link_failure):
@@ -2057,6 +2271,10 @@ def test_all():
         if do_test(fast_close):
                 return True
         if do_test(so_linger):
+                return True
+        if do_test(mutex_bug):
+                return True
+        if do_test(fallback_bug):
                 return True
         if do_test(srr):
                 return True
@@ -2078,6 +2296,10 @@ def test_all():
                 return True
         if not slow and do_test(bug_dzats):
                 return True
+	if do_test(max_addr):
+		return True
+	if do_test(max_addr_below):
+		return True
 
         return False
 
@@ -2096,6 +2318,8 @@ def test_addrs():
                 return True
         if do_test(add_addr_5):
                 return True
+        if do_test(add_addr_6):
+                return True
         if do_test(add_addr_nosack):
                 return True
         if do_test(link_failure):
@@ -2104,6 +2328,12 @@ def test_addrs():
                 return True
         if do_test(link_failure_3):
                 return True
+        if do_test(link_failure_4):
+                return True
+	if do_test(max_addr):
+		return True
+	if do_test(max_addr_below):
+		return True
 
         return False
 
@@ -2160,6 +2390,16 @@ if olia:
         do_ssh(router, "sysctl -w net.ipv4.tcp_congestion_control=olia")
         do_ssh(server, "sysctl -w net.ipv4.tcp_congestion_control=olia")
 
+if wvegas:
+        do_ssh(client, "sysctl -w net.ipv4.tcp_congestion_control=wvegas")
+        do_ssh(router, "sysctl -w net.ipv4.tcp_congestion_control=wvegas")
+        do_ssh(server, "sysctl -w net.ipv4.tcp_congestion_control=wvegas")
+
+if cubic:
+        do_ssh(client, "sysctl -w net.ipv4.tcp_congestion_control=cubic")
+        do_ssh(router, "sysctl -w net.ipv4.tcp_congestion_control=cubic")
+        do_ssh(server, "sysctl -w net.ipv4.tcp_congestion_control=cubic")
+
 if notso:
 	do_ssh(client, "ethtool -K "+client_itf1+" tso off gso off sg off")
 	do_ssh(client, "ethtool -K "+client_itf2+" tso off gso off sg off")
@@ -2193,7 +2433,7 @@ for i in range(0,len(bugs)):
         if do_test(vars()[bugs[i]]):
                 break
 
-if olia:
+if olia or wvegas or cubic:
         do_ssh(client, "sysctl -w net.ipv4.tcp_congestion_control=coupled")
         do_ssh(router, "sysctl -w net.ipv4.tcp_congestion_control=coupled")
         do_ssh(server, "sysctl -w net.ipv4.tcp_congestion_control=coupled")
