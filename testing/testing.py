@@ -319,28 +319,23 @@ def start_bug(bug, cliport = 0, srvport = 0, rtrport1 = 0, rtrport2 = 0, filt_pr
         global rtr
         global srv
 
-	do_ssh(client, "rm /tmp/client.dump")
-	do_ssh(router, "rm /tmp/router1.dump")
-	do_ssh(router, "rm /tmp/router2.dump")
-	do_ssh(server, "rm /tmp/server.dump")
-
         if os.path.exists(bug):
                 shutil.rmtree(bug)
         time.sleep(1)
         os.system("mkdir "+bug)
 
 	if cliport != 0:
+		do_ssh(client, "rm /tmp/client.dump")
 		do_ssh_back(client, "tshark -s 150 -i any -n -w /tmp/client.dump tcp "+filt_prefix+" port "+str(cliport)+" &")
 	if srvport != 0:
+		do_ssh(server, "rm /tmp/server.dump")
 		do_ssh_back(server, "tshark -s 150 -i any -n -w /tmp/server.dump tcp "+filt_prefix+" port "+str(srvport)+" &")
 	if rtrport1 != 0:
+		do_ssh(router, "rm /tmp/router1.dump")
 		do_ssh_back(router, "tshark -s 150 -i any -n -w /tmp/router1.dump tcp "+filt_prefix+" port "+str(rtrport1)+" &")
 	if rtrport2 != 0:
+		do_ssh(router, "rm /tmp/router2.dump")
 		do_ssh_back(router, "tshark -s 150 -i any -n -w /tmp/router2.dump tcp "+filt_prefix+" port "+str(rtrport2)+" &")
-
-        do_ssh(client, "echo '1' > /proc/sys/net/mptcp/mptcp_reset_snmp")
-        do_ssh(router, "echo '1' > /proc/sys/net/mptcp/mptcp_reset_snmp")
-        do_ssh(server, "echo '1' > /proc/sys/net/mptcp/mptcp_reset_snmp")
 
         get_netstat(client, bug)
         get_netstat(router, bug)
@@ -567,7 +562,7 @@ def bug_cheng_sbuf():
 
         do_ssh(client, "sysctl -w net.ipv4.tcp_wmem='1000000 167772160 268435456'")
         do_ssh(server, "sysctl -w net.ipv4.tcp_rmem='1000000 167772160 268435456'")
-        do_ssh(client, "sysctl -w net.mptcp.mptcp_ndiffports=16")
+        do_ssh(client, "echo '16' > /sys/module/mptcp_ndiffports/parameters/num_subflows")
 	do_ssh(client, "sysctl -w net.mptcp.mptcp_path_manager='ndiffports'")
 
         start_bug("bug_cheng_sbuf")
@@ -605,6 +600,7 @@ def bug_cheng_sbuf():
                 failed = True
 
 	do_ssh(client, "sysctl -w net.mptcp.mptcp_path_manager='fullmesh'")
+        do_ssh(client, "echo '1' > /sys/module/mptcp_ndiffports/parameters/num_subflows")
 
         return failed
 
@@ -884,8 +880,6 @@ def add_addr_2():
         clifile = "add_addr_2/cli_file"
         num = 1
 
-        do_ssh(client, "sysctl -w net.mptcp.mptcp_debug=1")
-        do_ssh(server, "sysctl -w net.mptcp.mptcp_debug=1")
         do_ssh_back(server, "/root/simple_server/server &")
 
         start_bug("add_addr_2")
@@ -1155,10 +1149,10 @@ def add_addr_4():
 def add_addr_5():
         failed = False
         ifile = "add_addr_5/iperf_res"
-        num = 1
+        num = 4
 
-#        start_bug("add_addr_5")
-        start_bug("add_addr_5", srvport=5001, filt_prefix="src")
+        start_bug("add_addr_5")
+#        start_bug("add_addr_5", cliport=5001)
 
         do_ssh(server, "killall -9 iperf")
         do_ssh_back(server, "iperf -s &")
@@ -1228,8 +1222,8 @@ def add_addr_5():
         do_ssh(router, "/root/kill_tc.sh")
         do_ssh(server, "/root/kill_tc.sh")
 
-#        if stop_bug("add_addr_5"):
-        if stop_bug("add_addr_5", tcpdump=True):
+        if stop_bug("add_addr_5"):
+#        if stop_bug("add_addr_5", tcpdump=True):
                 failed = True
 
         if verif_iperf(ifile, 0.4, num):
@@ -1730,24 +1724,30 @@ def simple_ab():
 
 def simple_abndiff():
         failed = False
+	do_ssh(client, "sysctl -w net.ipv4.tcp_tw_reuse=1")
+	do_ssh(server, "sysctl -w net.ipv4.tcp_tw_reuse=1")
 
+        #start_bug("simple_abndiff", cliport=80)
         start_bug("simple_abndiff")
-        do_ssh(client, "sysctl -w net.mptcp.mptcp_ndiffports=8")
+        do_ssh(client, "echo '8' > /sys/module/mptcp_ndiffports/parameters/num_subflows")
 	do_ssh(client, "sysctl -w net.mptcp.mptcp_path_manager='ndiffports'")
 
-        ret = do_ssh(client, "ab -c 100 -n 100000 "+server_ip+"/1KB")
+        ret = do_ssh(client, "weighttp -t 4 -c 100 -n 100000 "+server_ip+"/1KB")
+        #ret = do_ssh(client, "ab -c 100 -n 100000 "+server_ip+"/1KB")
 
         if ret != 0 and not slow:
                 failed = True
                 print "+++ apache-benchmark failed"
 
-        ret = do_ssh(client, "ab -c 100 -n 50000 "+server_ip+"/50KB")
+	if not failed or slow:
+	        ret = do_ssh(client, "ab -c 100 -n 50000 "+server_ip+"/50KB")
 
         if ret != 0 and not slow:
                 failed = True
                 print "+++ apache-benchmark failed"
 
-        ret = do_ssh(client, "ab -c 100 -n 10000 "+server_ip+"/300KB")
+	if not failed or slow:
+        	ret = do_ssh(client, "ab -c 100 -n 10000 "+server_ip+"/300KB")
 
         if ret != 0 and not slow:
                 failed = True
@@ -1756,10 +1756,14 @@ def simple_abndiff():
         do_ssh(client, "sysctl -p")
         do_ssh(server, "sysctl -p")
 
+        #if stop_bug("simple_abndiff", tcpdump=True):
         if stop_bug("simple_abndiff"):
                 failed = True
 
 	do_ssh(client, "sysctl -w net.mptcp.mptcp_path_manager='fullmesh'")
+        do_ssh(client, "echo '1' > /sys/module/mptcp_ndiffports/parameters/num_subflows")
+	do_ssh(client, "sysctl -w net.ipv4.tcp_tw_reuse=0")
+	do_ssh(server, "sysctl -w net.ipv4.tcp_tw_reuse=0")
 
         return failed
 
@@ -1887,6 +1891,7 @@ def bug_haproxy():
         ret = basic_tests(cli1="off", cli2="off", pr11="off", pr12="off", pr21="off", pr22="off", srv1="off", srv2="off", conc="100", num="100000", bug="bug_haproxy", opts=" -X "+router_ip+":3129")
         #ret = basic_tests(cli1="off", cli2="off", pr11="off", pr12="off", pr21="off", pr22="off", srv1="off", srv2="off", conc="100", num="100000", bug="bug_haproxy", opts=" -X "+router_ip+":3129", cliport=3129, srvport=80)
 
+
         if ret != 0:
                 print "+++ ab on 1KB failed"
                 failed = True
@@ -1994,8 +1999,8 @@ def bug_ab_lossy():
                         failed = True
 
         if not failed:
-                ret = basic_tests(cli1="on", cli2="on", pr11="off", pr12="off", pr21="off", pr22="off", srv1="on", srv2="on", conc="10", num="1000", bug="bug_ab_lossy", size="50KB")
-                #ret = basic_tests(cli1="on", cli2="on", pr11="off", pr12="off", pr21="off", pr22="off", srv1="on", srv2="on", conc="100", num="10000", bug="bug_ab_lossy", size="50KB", cliport=80, srvport=80)
+                ret = basic_tests(cli1="on", cli2="on", pr11="off", pr12="off", pr21="off", pr22="off", srv1="on", srv2="on", conc="100", num="10000", bug="bug_ab_lossy", size="50KB")
+                #ret = basic_tests(cli1="on", cli2="on", pr11="off", pr12="off", pr21="off", pr22="off", srv1="on", srv2="on", conc="30", num="1000", bug="bug_ab_lossy", size="50KB", srvport=80, opts="")
 
                 if ret:
                         print "+++ ab on 50KB failed"
@@ -2060,8 +2065,8 @@ def test_3gwifi():
         do_ssh(server, "tc qdisc del dev "+server_itf2+" root")
         
         do_ssh_back(server, "iperf -s &")
-        #start_bug("test_3gwifi")
-        start_bug("test_3gwifi", cliport = 5001)
+        start_bug("test_3gwifi")
+        #start_bug("test_3gwifi", cliport = 5001)
 
         ret = do_ssh_back(client, "iperf -c "+server_ip+" -y c -t 30 > "+ifile)
 
@@ -2076,8 +2081,8 @@ def test_3gwifi():
 
         do_ssh(router, "/root/kill_tc.sh")
 
-        #if stop_bug("test_3gwifi"):
-        if stop_bug("test_3gwifi", tcpdump = True):
+        if stop_bug("test_3gwifi"):
+        #if stop_bug("test_3gwifi", tcpdump = True):
                 failed = True
 
         return failed
@@ -2262,6 +2267,8 @@ def test_all():
                 return True
         if do_test(simple_ab):
                 return True
+	if do_test(simple_abndiff):
+		return True
         if do_test(time_wait_ab):
                 return True
         if do_test(ab_300):
@@ -2272,7 +2279,7 @@ def test_all():
                 return True
         if do_test(so_linger):
                 return True
-        if do_test(mutex_bug):
+        if not slow and do_test(mutex_bug):
                 return True
         if do_test(fallback_bug):
                 return True
@@ -2399,6 +2406,9 @@ if cubic:
         do_ssh(client, "sysctl -w net.ipv4.tcp_congestion_control=cubic")
         do_ssh(router, "sysctl -w net.ipv4.tcp_congestion_control=cubic")
         do_ssh(server, "sysctl -w net.ipv4.tcp_congestion_control=cubic")
+	do_ssh(client, "echo 0 > /sys/module/tcp_cubic/parameters/hystart")
+	do_ssh(router, "echo 0 > /sys/module/tcp_cubic/parameters/hystart")
+	do_ssh(server, "echo 0 > /sys/module/tcp_cubic/parameters/hystart")
 
 if notso:
 	do_ssh(client, "ethtool -K "+client_itf1+" tso off gso off sg off")
@@ -2434,9 +2444,9 @@ for i in range(0,len(bugs)):
                 break
 
 if olia or wvegas or cubic:
-        do_ssh(client, "sysctl -w net.ipv4.tcp_congestion_control=coupled")
-        do_ssh(router, "sysctl -w net.ipv4.tcp_congestion_control=coupled")
-        do_ssh(server, "sysctl -w net.ipv4.tcp_congestion_control=coupled")
+        do_ssh(client, "sysctl -w net.ipv4.tcp_congestion_control=lia")
+        do_ssh(router, "sysctl -w net.ipv4.tcp_congestion_control=lia")
+        do_ssh(server, "sysctl -w net.ipv4.tcp_congestion_control=lia")
 
 if notso:
         do_ssh(client, "ethtool -K "+client_itf1+" tso on gso on sg on")
