@@ -47,12 +47,12 @@ dpkg --build linux-mptcp
 mv linux-mptcp.deb linux-mptcp_${DATE}_all.deb
 
 # Install everything
-ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/*.deb"
-scp -C *.deb root@mptcp.info.ucl.ac.be:/tmp/
-scp $HOME/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
+ssh root@multipath-tcp.org "rm -f /tmp/*.deb"
+scp -C *.deb root@multipath-tcp.org:/tmp/
+scp $HOME/bin/setup_amd64.sh root@multipath-tcp.org:/tmp/
 
-ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh squeeze"
-ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/setup_amd64.sh"
+ssh root@multipath-tcp.org "/tmp/setup_amd64.sh squeeze"
+ssh root@multipath-tcp.org "rm -f /tmp/setup_amd64.sh"
 
 rm *.deb
 

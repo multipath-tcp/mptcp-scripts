@@ -39,7 +39,7 @@ echo "Conflicts: arpd" >> $CTRL
 echo "Provides: arpd" >> $CTRL
 echo "Section: net" >> $CTRL
 echo "Priority: important" >> $CTRL
-echo "Homepage: http://mptcp.info.ucl.ac.be" >> $CTRL
+echo "Homepage: http://mulitpath-tcp.org" >> $CTRL
 echo "Description: networking and traffic control tools" >> $CTRL
 echo " The iproute suite, also known as iproute2, is a collection of" >> $CTRL
 echo " utilities for networking and traffic control." >> $CTRL
@@ -72,18 +72,18 @@ then
 	echo "Priority: important" >> $CTRL
 	echo "Description: transitional dummy package for iproute2" >> $CTRL
 	echo " This is a transitional dummy package to get upgrading systems to install the iproute2 package. It can safely be removed." >> $CTRL
-	echo "Homepage: http://mptcp.info.ucl.ac.be" >> $CTRL
+	echo "Homepage: http://multipath-tcp.org" >> $CTRL
 
 	cd /tmp/
 	dpkg -b iproute
 fi	
 
 # install everything
-ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/*.deb"
-scp *.deb root@mptcp.info.ucl.ac.be:/tmp/
-scp $HOME/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
-ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh ${DIST}"
-ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/setup_amd64.sh"
+ssh root@multipath-tcp.org "rm -f /tmp/*.deb"
+scp *.deb root@multipath-tcp.org:/tmp/
+scp $HOME/bin/setup_amd64.sh root@multipath-tcp.org:/tmp/
+ssh root@multipath-tcp.org "/tmp/setup_amd64.sh ${DIST}"
+ssh root@multipath-tcp.org "rm -f /tmp/setup_amd64.sh"
 
 rm *.deb
 

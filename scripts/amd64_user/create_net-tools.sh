@@ -47,11 +47,11 @@ cd /tmp/
 dpkg -b net-tools
 
 # install everything
-ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/*.deb"
-scp *.deb root@mptcp.info.ucl.ac.be:/tmp/
-scp $HOME/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
-ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh ${DIST}"
-ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/setup_amd64.sh"
+ssh root@multipath-tcp.org "rm -f /tmp/*.deb"
+scp *.deb root@multipath-tcp.org:/tmp/
+scp $HOME/bin/setup_amd64.sh root@multipath-tcp.org:/tmp/
+ssh root@multipath-tcp.org "/tmp/setup_amd64.sh ${DIST}"
+ssh root@multipath-tcp.org "rm -f /tmp/setup_amd64.sh"
 
 rm *.deb
 

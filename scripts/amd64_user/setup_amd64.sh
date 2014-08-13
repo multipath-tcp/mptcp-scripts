@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to setup amd64-images on mptcp.info.ucl.ac.be
+# Script to setup amd64-images on multipath-tcp.org
 #
 # arg_1 : distribution
 

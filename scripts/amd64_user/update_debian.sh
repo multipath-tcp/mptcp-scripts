@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script on the amd64-host to compile amd64-images and update them on mptcp.info.ucl.ac.be
+# Script on the amd64-host to compile amd64-images and update them on multipath-tcp.org
 file=`basename $0`
 logfile=/tmp/${file}.log
 exec > $logfile 2>&1
@@ -60,12 +60,12 @@ dpkg --build linux-$FLAV
 mv linux-${FLAV}.deb linux-${FLAV}_${version}_all.deb
 
 # Install everything
-ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/*.deb"
-scp -C *.deb root@mptcp.info.ucl.ac.be:/tmp/
-scp /root/bin/setup_amd64.sh root@mptcp.info.ucl.ac.be:/tmp/
+ssh root@multipath-tcp.org "rm -f /tmp/*.deb"
+scp -C *.deb root@multipath-tcp.org:/tmp/
+scp /root/bin/setup_amd64.sh root@multipath-tcp.org:/tmp/
 
-ssh root@mptcp.info.ucl.ac.be "/tmp/setup_amd64.sh precise"
-ssh root@mptcp.info.ucl.ac.be "rm -f /tmp/setup_amd64.sh"
+ssh root@multipath-tcp.org "/tmp/setup_amd64.sh precise"
+ssh root@multipath-tcp.org "rm -f /tmp/setup_amd64.sh"
 
 rm *.deb
 
