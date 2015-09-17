@@ -16,7 +16,7 @@ fi
 CTRL="${BASE}/DEBIAN/control"
 DATE=`date +%Y%m%d%H%M`
 
-cd $HOME/workspace/linux/iproute2/
+cd /root/iproute-mptcp
 git pull
 
 rm -Rf $BASE
@@ -30,12 +30,13 @@ DESTDIR=$BASE make install
 mkdir $BASE/DEBIAN
 
 echo "Package: $PKG" >> $CTRL
-echo "Version: 3.11.${DATE}-${DIST}" >> $CTRL
+echo "Version: 3.16.${DATE}-${DIST}" >> $CTRL
 echo "Architecture: $AR" >> $CTRL
-echo "Maintainer: Christoph Paasch <christoph.paasch@uclouvain.be>" >> $CTRL
+echo "Maintainer: Christoph Paasch <christoph.paasch@gmail.com>" >> $CTRL
 #echo "Installed-Size: 1092" >> $CTRL
-echo "Depends: libc6 (>= 2.11), libdb5.1" >> $CTRL
-echo "Conflicts: arpd" >> $CTRL
+echo "Depends: libc6 (>= 2.14), libdb5.3, libselinux1 (>= 2.0.15)" >> $CTRL
+echo "Conflicts: arpd, iproute" >> $CTRL
+echo "Replaces: iproute" >> $CTRL
 echo "Provides: arpd" >> $CTRL
 echo "Section: net" >> $CTRL
 echo "Priority: important" >> $CTRL
