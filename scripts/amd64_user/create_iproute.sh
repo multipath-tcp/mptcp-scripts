@@ -5,14 +5,8 @@ set -e
 
 DIST=$1
 AR=$2
-if [ $DIST == "saucy" ]
-then
-	BASE="/tmp/iproute2"
-	PKG="iproute2"
-else
-	BASE="/tmp/iproute"
-	PKG="iproute"
-fi
+BASE="/tmp/iproute2"
+PKG="iproute2"
 CTRL="${BASE}/DEBIAN/control"
 DATE=`date +%Y%m%d%H%M`
 
@@ -57,27 +51,24 @@ dpkg -b $PKG
 
 echo "DONE FIRST PART"
 
-if [ $DIST == "saucy" ]
-then
-	BASE="/tmp/iproute"
-	rm -Rf $BASE
-	mkdir $BASE
-	mkdir $BASE/DEBIAN
-	CTRL="${BASE}/DEBIAN/control"
-	echo "Package: iproute" >> $CTRL
-	echo "Version: 1:3.11.${DATE}-${DIST}" >> $CTRL
-	echo "Architecture: $AR" >> $CTRL
-	echo "Maintainer: Christoph Paasch <christoph.paasch@uclouvain.be>" >> $CTRL
-	echo "Depends: iproute2" >> $CTRL
-	echo "Section: net" >> $CTRL
-	echo "Priority: important" >> $CTRL
-	echo "Description: transitional dummy package for iproute2" >> $CTRL
-	echo " This is a transitional dummy package to get upgrading systems to install the iproute2 package. It can safely be removed." >> $CTRL
-	echo "Homepage: http://multipath-tcp.org" >> $CTRL
+BASE="/tmp/iproute"
+rm -Rf $BASE
+mkdir $BASE
+mkdir $BASE/DEBIAN
+CTRL="${BASE}/DEBIAN/control"
+echo "Package: iproute" >> $CTRL
+echo "Version: 1:3.16.${DATE}-${DIST}" >> $CTRL
+echo "Architecture: $AR" >> $CTRL
+echo "Maintainer: Christoph Paasch <christoph.paasch@gmail.com>" >> $CTRL
+echo "Depends: iproute2" >> $CTRL
+echo "Section: net" >> $CTRL
+echo "Priority: important" >> $CTRL
+echo "Description: transitional dummy package for iproute2" >> $CTRL
+echo " This is a transitional dummy package to get upgrading systems to install the iproute2 package. It can safely be removed." >> $CTRL
+echo "Homepage: http://multipath-tcp.org" >> $CTRL
 
-	cd /tmp/
-	dpkg -b iproute
-fi	
+cd /tmp/
+dpkg -b iproute
 
 # install everything
 ssh root@multipath-tcp.org "rm -f /tmp/*.deb"
