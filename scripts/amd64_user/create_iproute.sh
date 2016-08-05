@@ -70,12 +70,3 @@ echo "Homepage: http://multipath-tcp.org" >> $CTRL
 cd /tmp/
 dpkg -b iproute
 
-# install everything
-ssh root@multipath-tcp.org "rm -f /tmp/*.deb"
-scp *.deb root@multipath-tcp.org:/tmp/
-scp $HOME/bin/setup_amd64.sh root@multipath-tcp.org:/tmp/
-ssh root@multipath-tcp.org "/tmp/setup_amd64.sh ${DIST}"
-ssh root@multipath-tcp.org "rm -f /tmp/setup_amd64.sh"
-
-rm *.deb
-
