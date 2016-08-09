@@ -7,12 +7,12 @@ exec > $logfile 2>&1
 trap "cat $logfile | uuencode $logfile | mailx -s \"$file failed\" christoph.paasch@gmail.com ; exit 1" ERR
 
 cd $HOME/mtcp/
+git checkout mptcp_trunk
 git pull
 
 #tag=`git describe --abbrev=0`
-#tag="6e4664525b1db28f8c4e1130957f70a94c19213e"
-tag="d397274c53c6a418af62b08a92cbd1207616f3c5"
+tag="b953c0d234bc72e8489d3bf51a276c5c4ec85345"
 
 export PYTHONUNBUFFERED=x
-$HOME/bin/gitstats -c commit_begin=$tag -c project_name=MPTCP . ../mptcp_stats/
+$HOME/bin/gitstats -c commit_begin=$tag -c project_name=MPTCP -c max_authors=30 -c start_date="3/4/2009" . ../mptcp_stats/
 

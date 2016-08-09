@@ -15,5 +15,5 @@ git archive --format=tar --prefix=mptcp_$DATE/ HEAD | gzip > mptcp_$DATE.tar.gz
 mv mptcp_$DATE.tar.gz /var/www/snapshots/
 
 # Delete old snaphots
-find /var/www/snapshots/ -type f -mtime +15 -delete
+find /var/www/snapshots/ -type f -mtime +7 -delete
 
