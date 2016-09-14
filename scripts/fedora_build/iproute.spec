@@ -2,7 +2,7 @@
 Summary:            Advanced IP routing and network device configuration tools
 Name:               iproute
 Version:            mptcp_v0.91
-Release:            3%{?dist}
+Release:            4%{?dist}
 Group:              Applications/System
 URL:                https://github.com/multipath-tcp/iproute-mptcp
 Source0:            https://github.com/multipath-tcp/iproute-mptcp/archive/mptcp_v0.91.zip

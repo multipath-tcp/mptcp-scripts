@@ -1,14 +1,12 @@
-%global checkout 20160329git
 
 Summary: Basic networking tools
 Name: net-tools
 Version: mptcp_v0.91
-Release: 0.37.%{checkout}%{?dist}
+Release: 2
 License: GPLv2+
 Group: System Environment/Base
 URL: https://github.com/multipath-tcp/net-tools/
 
-# git archive --format=tar --remote=git://git.code.sf.net/p/net-tools/code master | xz > net-tools-%%{version}.%%{checkout}.tar.xz
 Source0: https://github.com/multipath-tcp/net-tools/archive/mptcp_v0.91.zip
 Source1: net-tools-config.h
 Source2: net-tools-config.make
