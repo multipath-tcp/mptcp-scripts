@@ -30,7 +30,7 @@ echo "Maintainer: Christoph Paasch <christoph.paasch@gmail.com>" >> $CTRL
 #echo "Installed-Size: 1092" >> $CTRL
 echo "Depends: libc6 (>= 2.14)" >> $CTRL
 echo "Conflicts: ja-trans (<= 0.8-2)" >> $CTRL
-echo "Replaces: ja-trans (<= 0.8-2), netbase (< 4.00)" >> $CTRL
+echo "Replaces: ja-trans (<= 0.8-2), netbase (<< 4.00)" >> $CTRL
 echo "Section: net" >> $CTRL
 echo "Priority: important" >> $CTRL
 echo "Homepage: http://multipath-tcp.org" >> $CTRL
