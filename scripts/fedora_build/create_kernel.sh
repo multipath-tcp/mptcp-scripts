@@ -4,13 +4,12 @@ cd $HOME
 rm -f *.deb
 
 cd $HOME/mptcp
-git pull
 
 DATE=`date "+%Y%m%d%H%M%S"`
 KVERS=`make kernelversion`
 make -j 8 rpm-pkg DEBEMAIL='christoph.paasch@gmail.com' DEBFULLNAME='Christoph Paasch' LOCALVERSION=.mptcp KDEB_PKGVERSION=${DATE}
 
-# Install with 'dnf install kernel-4.1.26.mptcp' - may need to remove a kernel
+# Install with 'dnf install kernel-4.1.34.mptcp' - may need to remove a kernel
 
 ## Create meta-package
 #rm -Rf linux-mptcp
