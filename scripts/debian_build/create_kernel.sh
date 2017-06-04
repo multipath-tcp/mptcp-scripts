@@ -4,7 +4,6 @@ cd $HOME
 rm -f *.deb
 
 cd $HOME/mptcp
-git pull
 
 DATE=`date "+%Y%m%d%H%M%S"`
 KVERS=`make kernelversion`
