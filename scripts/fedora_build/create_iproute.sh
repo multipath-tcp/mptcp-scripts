@@ -1,9 +1,9 @@
 #!/bin/bash
 
 rm ~/rpmbuild/SOURCES/*
-wget -P ~/rpmbuild/SOURCES/ https://github.com/multipath-tcp/iproute-mptcp/archive/mptcp_v0.92.zip
+wget -P ~/rpmbuild/SOURCES/ https://github.com/multipath-tcp/iproute-mptcp/archive/mptcp_v0.93.zip
 
 rpmbuild -ba ./iproute.spec
 
-### install with 'dnf install iproute-mptcp_v0.92'
+### install with 'dnf install iproute-mptcp_v0.93'
 

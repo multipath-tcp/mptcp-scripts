@@ -1,11 +1,11 @@
 %global             cbq_version v0.7.3
 Summary:            Advanced IP routing and network device configuration tools
 Name:               iproute
-Version:            mptcp_v0.92
+Version:            mptcp_v0.93
 Release:            4%{?dist}
 Group:              Applications/System
 URL:                https://github.com/multipath-tcp/iproute-mptcp
-Source0:            https://github.com/multipath-tcp/iproute-mptcp/archive/mptcp_v0.92.zip
+Source0:            https://github.com/multipath-tcp/iproute-mptcp/archive/mptcp_v0.93.zip
 
 License:            GPLv2+ and Public Domain
 BuildRequires:      bison
@@ -89,6 +89,7 @@ rm -rf '%{buildroot}%{_docdir}'
 %{_sbindir}/*
 %dir %{_libdir}/tc/
 %{_libdir}/tc/*
+%{_datadir}/bash-completion/completions/tc
 
 %files doc
 %{!?_licensedir:%global license %%doc}
