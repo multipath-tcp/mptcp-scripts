@@ -24,11 +24,11 @@ DESTDIR=$BASE make install
 mkdir $BASE/DEBIAN
 
 echo "Package: $PKG" >> $CTRL
-echo "Version: 3.16.${DATE}-${DIST}" >> $CTRL
+echo "Version: 4.9.${DATE}-${DIST}" >> $CTRL
 echo "Architecture: $AR" >> $CTRL
 echo "Maintainer: Christoph Paasch <christoph.paasch@gmail.com>" >> $CTRL
 #echo "Installed-Size: 1092" >> $CTRL
-echo "Depends: libc6 (>= 2.14), libdb5.3, libselinux1 (>= 2.0.15)" >> $CTRL
+echo "Depends: libc6 (>= 2.14), libdb5.3, libelf1 (>= 0.131), libmnl0 (>= 1.0.3-4~), libselinux1 (>= 2.0.15)" >> $CTRL
 echo "Conflicts: arpd, iproute" >> $CTRL
 echo "Replaces: iproute" >> $CTRL
 echo "Provides: arpd" >> $CTRL
@@ -57,7 +57,7 @@ mkdir $BASE
 mkdir $BASE/DEBIAN
 CTRL="${BASE}/DEBIAN/control"
 echo "Package: iproute" >> $CTRL
-echo "Version: 1:3.16.${DATE}-${DIST}" >> $CTRL
+echo "Version: 1:4.9.${DATE}-${DIST}" >> $CTRL
 echo "Architecture: $AR" >> $CTRL
 echo "Maintainer: Christoph Paasch <christoph.paasch@gmail.com>" >> $CTRL
 echo "Depends: iproute2" >> $CTRL
