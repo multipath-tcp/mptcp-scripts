@@ -5,5 +5,5 @@ wget -P ~/rpmbuild/SOURCES/ https://github.com/multipath-tcp/iproute-mptcp/archi
 
 rpmbuild -ba ./iproute.spec
 
-### install with 'dnf install iproute-mptcp_v0.93'
+### install with 'dnf install iproute-mptcp_v0.94'
 

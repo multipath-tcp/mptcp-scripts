@@ -1,11 +1,11 @@
 %global             cbq_version v0.7.3
 Summary:            Advanced IP routing and network device configuration tools
 Name:               iproute
-Version:            mptcp_v0.93
-Release:            4%{?dist}
+Version:            mptcp_v0.94
+Release:            5%{?dist}
 Group:              Applications/System
 URL:                https://github.com/multipath-tcp/iproute-mptcp
-Source0:            https://github.com/multipath-tcp/iproute-mptcp/archive/mptcp_v0.93.zip
+Source0:            https://github.com/multipath-tcp/iproute-mptcp/archive/mptcp_v0.94.zip
 
 License:            GPLv2+ and Public Domain
 BuildRequires:      bison
@@ -15,25 +15,37 @@ BuildRequires:      iptables-devel >= 1.4.5
 BuildRequires:      libdb-devel
 BuildRequires:      libmnl-devel
 BuildRequires:      libselinux-devel
-BuildRequires:      linuxdoc-tools
 BuildRequires:      pkgconfig
-BuildRequires:      psutils
-BuildRequires:      tex(cm-super-t1.enc)
-BuildRequires:      tex(dvips)
-BuildRequires:      tex(ecrm1000.tfm)
-BuildRequires:      tex(latex)
+%if ! 0%{?_module_build}
 %if 0%{?fedora}
 BuildRequires:      linux-atm-libs-devel
+%endif
 %endif
 # For the UsrMove transition period
 Conflicts:          filesystem < 3
 Provides:           /sbin/ip
+Obsoletes:          %{name} < 4.5.0-3
+Recommends:         %{name}-tc
 
 %description
 The iproute package contains networking utilities (ip and rtmon, for example)
 which are designed to use the advanced networking capabilities of the Linux
-2.4.x and 2.6.x kernel.
+kernel.
 
+%package tc
+Summary:            Linux Traffic Control utility
+Group:              Applications/System
+License:            GPLv2+
+Obsoletes:          %{name} < 4.5.0-3
+Requires:           %{name}%{?_isa} = %{version}-%{release}
+Provides:           tc
+
+%description tc
+The Traffic Control utility manages queueing disciplines, their classes and
+attached filters and actions. It is the standard tool to configure QoS in
+Linux.
+
+%if ! 0%{?_module_build}
 %package doc
 Summary:            Documentation for iproute2 utilities with examples
 Group:              Applications/System
@@ -41,6 +53,7 @@ License:            GPLv2+
 
 %description doc
 The iproute documentation contains howtos and examples of settings.
+%endif
 
 %package devel
 Summary:            iproute development files
@@ -52,7 +65,7 @@ Provides:           iproute-static = %{version}-%{release}
 The libnetlink static library.
 
 %prep
-%setup -q -n iproute-mptcp-%{version}
+%autosetup -p1 -n iproute-mptcp-%{version}
 
 %build
 export CFLAGS="%{optflags}"
@@ -60,7 +73,6 @@ export LIBDIR=/%{_libdir}
 export IPT_LIB_DIR=/%{_lib}/xtables
 ./configure
 make %{?_smp_mflags}
-make -C doc
 
 %install
 export DESTDIR='%{buildroot}'
@@ -82,20 +94,34 @@ rm -rf '%{buildroot}%{_docdir}'
 %dir %{_sysconfdir}/iproute2
 %{!?_licensedir:%global license %%doc}
 %license COPYING
-%doc README README.decnet README.iproute2+tc README.distribution README.lnstat
+%doc README README.decnet README.distribution README.lnstat
 %{_mandir}/man7/*
+%exclude %{_mandir}/man7/tc-*
 %{_mandir}/man8/*
+%exclude %{_mandir}/man8/tc*
 %attr(644,root,root) %config(noreplace) %{_sysconfdir}/iproute2/*
 %{_sbindir}/*
+%exclude %{_sbindir}/tc
 %dir %{_libdir}/tc/
 %{_libdir}/tc/*
+
+%files tc
+%{!?_licensedir:%global license %%doc}
+%license COPYING
+%doc README.iproute2+tc
+%{_mandir}/man7/tc-*
+%{_mandir}/man8/tc*
+%dir %{_libdir}/tc/
+%{_libdir}/tc/*
+%{_sbindir}/tc
 %{_datadir}/bash-completion/completions/tc
 
+%if ! 0%{?_module_build}
 %files doc
 %{!?_licensedir:%global license %%doc}
 %license COPYING
-%doc doc/*.ps
 %doc examples
+%endif
 
 %files devel
 %{!?_licensedir:%global license %%doc}
@@ -103,6 +129,7 @@ rm -rf '%{buildroot}%{_docdir}'
 %{_mandir}/man3/*
 %{_libdir}/libnetlink.a
 %{_includedir}/libnetlink.h
+%{_includedir}/iproute2/bpf_elf.h
 
 %changelog
 * Thu Feb 04 2016 Fedora Release Engineering <releng@fedoraproject.org> - 4.4.0-3
