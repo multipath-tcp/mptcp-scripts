@@ -32,25 +32,34 @@ make -j 8 deb-pkg DEBEMAIL="${EMAIL}" DEBFULLNAME="${FULLNAME}" LOCALVERSION=.mp
 cd "${ROOT_DIR}"
 
 # Create meta-package
-rm -Rf linux-mptcp
+META_PKG="linux-mptcp"
 
-mkdir linux-mptcp
-mkdir linux-mptcp/DEBIAN
-chmod -R a-s linux-mptcp
-ctrl="linux-mptcp/DEBIAN/control"
-touch $ctrl
+# if it is not the last version, add a suffix to restrict to this kernel
+if [ -s "${CONFIG_PATH}" ] && \
+   [ "${CONFIG_KVERS}" != "$(basename "$(ls "${SCRIPT_DIR}/config-"* | sort -V | tail -n1)")" ]; then
+	META_PKG+="-${KVERS_MAJ}"
+fi
 
-echo "Package: linux-mptcp" >> $ctrl
-echo "Version: ${DATE}" >> $ctrl
-echo "Section: main" >> $ctrl
-echo "Priority: optional" >> $ctrl
-echo "Architecture: all" >> $ctrl
-echo "Depends: linux-headers-${KVERS}.mptcp, linux-image-${KVERS}.mptcp" >> $ctrl
-echo "Installed-Size:" >> $ctrl
+echo "Creating ${META_PKG} meta package"
+
+rm -Rf "${META_PKG}"
+
+mkdir -p "${META_PKG}/DEBIAN"
+chmod -R a-s "${META_PKG}"
+ctrl="${META_PKG}/DEBIAN/control"
+touch "${ctrl}"
+
+echo "Package: ${META_PKG}" >> "${ctrl}"
+echo "Version: ${DATE}" >> "${ctrl}"
+echo "Section: main" >> "${ctrl}"
+echo "Priority: optional" >> "${ctrl}"
+echo "Architecture: all" >> "${ctrl}"
+echo "Depends: linux-headers-${KVERS}.mptcp, linux-image-${KVERS}.mptcp" >> "${ctrl}"
+echo "Installed-Size:" >> "${ctrl}"
 echo "Maintainer: ${FULLNAME} <${EMAIL}>" >> "${ctrl}"
-echo "Description: A meta-package for linux-mptcp" >> $ctrl
+echo "Description: A meta-package for ${META_PKG}" >> "${ctrl}"
 
-dpkg --build linux-mptcp
+dpkg --build "${META_PKG}"
 
-mv linux-mptcp.deb linux-mptcp_${DATE}_all.deb
+mv "${META_PKG}.deb" "${META_PKG}_${DATE}_all.deb"
 
