@@ -3,6 +3,8 @@
 # If MY_ROOT_DIR is not set, it is "${HOME}"
 
 # These variables can be modified
+FULLNAME=${MY_FULLNAME:-"Christoph Paasch"}
+EMAIL=${MY_EMAIL:-"christoph.paasch@gmail.com"}
 ROOT_DIR=${MY_ROOT_DIR:-"${HOME}"}
 
 cd "${ROOT_DIR}"
@@ -12,7 +14,7 @@ cd "${ROOT_DIR}/mptcp"
 
 DATE=`date "+%Y%m%d%H%M%S"`
 KVERS=`make kernelversion`
-make -j 8 deb-pkg DEBEMAIL='christoph.paasch@gmail.com' DEBFULLNAME='Christoph Paasch' LOCALVERSION=.mptcp KDEB_PKGVERSION=${DATE}
+make -j 8 deb-pkg DEBEMAIL="${EMAIL}" DEBFULLNAME="${FULLNAME}" LOCALVERSION=.mptcp KDEB_PKGVERSION="${DATE}"
 
 cd "${ROOT_DIR}"
 
@@ -32,7 +34,7 @@ echo "Priority: optional" >> $ctrl
 echo "Architecture: all" >> $ctrl
 echo "Depends: linux-headers-${KVERS}.mptcp, linux-image-${KVERS}.mptcp" >> $ctrl
 echo "Installed-Size:" >> $ctrl
-echo "Maintainer: Christoph Paasch <christoph.paasch@gmail.com>" >> $ctrl
+echo "Maintainer: ${FULLNAME} <${EMAIL}>" >> "${ctrl}"
 echo "Description: A meta-package for linux-mptcp" >> $ctrl
 
 dpkg --build linux-mptcp
