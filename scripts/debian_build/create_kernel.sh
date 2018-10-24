@@ -22,6 +22,7 @@ KVERS=$(make kernelversion)
 KVERS_MAJ=$(echo "${KVERS}" | cut -d. -f1-2)
 CONFIG_KVERS="config-${KVERS_MAJ}"
 CONFIG_PATH="${SCRIPT_DIR}/${CONFIG_KVERS}"
+TAG="$(git describe --tags)"
 
 [ "${CONFIG}" = "y" ] && cp -v "${CONFIG_PATH}" .config
 
@@ -57,9 +58,9 @@ echo "Architecture: all" >> "${ctrl}"
 echo "Depends: linux-headers-${KVERS}.mptcp, linux-image-${KVERS}.mptcp" >> "${ctrl}"
 echo "Installed-Size:" >> "${ctrl}"
 echo "Maintainer: ${FULLNAME} <${EMAIL}>" >> "${ctrl}"
-echo "Description: A meta-package for ${META_PKG}" >> "${ctrl}"
+echo "Description: A meta-package for Linux kernel v${KVERS} MPTCP ${TAG}" >> "${ctrl}"
 
 dpkg --build "${META_PKG}"
 
-mv "${META_PKG}.deb" "${META_PKG}_${DATE}_all.deb"
+mv "${META_PKG}.deb" "${META_PKG}_${TAG}_${DATE}_all.deb"
 
