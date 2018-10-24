@@ -11,9 +11,10 @@ CONFIG=${MY_CONFIG:-"n"}
 # Unmodifiabled variables
 INIT_DIR="${PWD}"
 SCRIPT_DIR="${INIT_DIR}/$(dirname "${0}")"
+DEB_INFO="${MY_ROOT_DIR}/deb.info"
 
 cd "${ROOT_DIR}"
-rm -f *.deb
+rm -fv *.deb
 
 cd "${ROOT_DIR}/mptcp"
 
@@ -26,6 +27,7 @@ TAG="$(git describe --tags)"
 
 [ "${CONFIG}" = "y" ] && cp -v "${CONFIG_PATH}" .config
 
+echo "Building ${KVERS} - Tag: ${TAG}" | tee "${DEB_INFO}"
 make -j 8 deb-pkg DEBEMAIL="${EMAIL}" DEBFULLNAME="${FULLNAME}" LOCALVERSION=.mptcp KDEB_PKGVERSION="${DATE}"
 
 [ "${CONFIG}" = "y" ] && cp -v .config "${CONFIG_PATH}"
