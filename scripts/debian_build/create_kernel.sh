@@ -6,15 +6,28 @@
 FULLNAME=${MY_FULLNAME:-"Christoph Paasch"}
 EMAIL=${MY_EMAIL:-"christoph.paasch@gmail.com"}
 ROOT_DIR=${MY_ROOT_DIR:-"${HOME}"}
+CONFIG=${MY_CONFIG:-"n"}
+
+# Unmodifiabled variables
+INIT_DIR="${PWD}"
+SCRIPT_DIR="${INIT_DIR}/$(dirname "${0}")"
 
 cd "${ROOT_DIR}"
 rm -f *.deb
 
 cd "${ROOT_DIR}/mptcp"
 
-DATE=`date "+%Y%m%d%H%M%S"`
-KVERS=`make kernelversion`
+DATE=$(date "+%Y%m%d%H%M%S")
+KVERS=$(make kernelversion)
+KVERS_MAJ=$(echo "${KVERS}" | cut -d. -f1-2)
+CONFIG_KVERS="config-${KVERS_MAJ}"
+CONFIG_PATH="${SCRIPT_DIR}/${CONFIG_KVERS}"
+
+[ "${CONFIG}" = "y" ] && cp -v "${CONFIG_PATH}" .config
+
 make -j 8 deb-pkg DEBEMAIL="${EMAIL}" DEBFULLNAME="${FULLNAME}" LOCALVERSION=.mptcp KDEB_PKGVERSION="${DATE}"
+
+[ "${CONFIG}" = "y" ] && cp -v .config "${CONFIG_PATH}"
 
 cd "${ROOT_DIR}"
 
