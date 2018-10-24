@@ -13,6 +13,11 @@ RPM_INFO="${MY_ROOT_DIR}/rpm.info"
 
 cd "${ROOT_DIR}/mptcp"
 
+if ! git describe --tags --exact-match; then
+        echo "Not building a tag. Press Enter to continue."
+        read
+fi
+
 KVERS=$(make kernelversion)
 KVERS_MAJ=$(echo "${KVERS}" | cut -d. -f1-2)
 CONFIG_KVERS="config-${KVERS_MAJ}"

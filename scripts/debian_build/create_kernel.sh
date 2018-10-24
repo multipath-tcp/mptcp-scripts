@@ -18,6 +18,11 @@ rm -fv *.deb
 
 cd "${ROOT_DIR}/mptcp"
 
+if ! git describe --tags --exact-match; then
+	echo "Not building a tag. Press Enter to continue."
+	read
+fi
+
 DATE=$(date "+%Y%m%d%H%M%S")
 KVERS=$(make kernelversion)
 KVERS_MAJ=$(echo "${KVERS}" | cut -d. -f1-2)
