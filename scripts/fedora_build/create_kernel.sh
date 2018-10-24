@@ -9,6 +9,7 @@ CONFIG=${MY_CONFIG:-"n"}
 # Unmodifiabled variables
 INIT_DIR="${PWD}"
 SCRIPT_DIR="${INIT_DIR}/$(dirname "${0}")"
+RPM_INFO="${MY_ROOT_DIR}/rpm.info"
 
 cd "${ROOT_DIR}/mptcp"
 
@@ -19,9 +20,10 @@ CONFIG_PATH="${SCRIPT_DIR}/${CONFIG_KVERS}"
 
 [ "${CONFIG}" = "y" ] && cp -v "${CONFIG_PATH}" .config
 
+echo "Building ${KVERS} - Tag: $(git describe --tags)" | tee "${RPM_INFO}"
 make -j 8 rpm-pkg LOCALVERSION=.mptcp
 
 [ "${CONFIG}" = "y" ] && cp -v .config "${CONFIG_PATH}"
 
-# Install with 'dnf install kernel-4.1.34.mptcp' - may need to remove a kernel
-
+echo "Install with 'dnf install kernel-${KVERS}.mptcp'" | tee -a "${RPM_INFO}"
+# we may need to remove a kernel
