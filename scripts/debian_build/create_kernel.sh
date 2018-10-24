@@ -1,15 +1,20 @@
 #!/bin/bash
+# Note: mptcp repo needs to be in "${MY_ROOT_DIR}/mptcp" at the correct ref.
+# If MY_ROOT_DIR is not set, it is "${HOME}"
 
-cd $HOME
+# These variables can be modified
+ROOT_DIR=${MY_ROOT_DIR:-"${HOME}"}
+
+cd "${ROOT_DIR}"
 rm -f *.deb
 
-cd $HOME/mptcp
+cd "${ROOT_DIR}/mptcp"
 
 DATE=`date "+%Y%m%d%H%M%S"`
 KVERS=`make kernelversion`
 make -j 8 deb-pkg DEBEMAIL='christoph.paasch@gmail.com' DEBFULLNAME='Christoph Paasch' LOCALVERSION=.mptcp KDEB_PKGVERSION=${DATE}
 
-cd $HOME
+cd "${ROOT_DIR}"
 
 # Create meta-package
 rm -Rf linux-mptcp
