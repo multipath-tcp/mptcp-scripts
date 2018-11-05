@@ -1,36 +1,34 @@
 #!/bin/bash
+# Note: mptcp repo needs to be in "${MY_ROOT_DIR}/mptcp" at the correct ref.
+# If MY_ROOT_DIR is not set, it is "${HOME}"
 
-cd $HOME
-rm -f *.deb
+# These variables can be modified
+ROOT_DIR=${MY_ROOT_DIR:-"${HOME}"}
+CONFIG=${MY_CONFIG:-"n"}
 
-cd $HOME/mptcp
+# Unmodifiabled variables
+INIT_DIR="${PWD}"
+SCRIPT_DIR="${INIT_DIR}/$(dirname "${0}")"
+RPM_INFO="${MY_ROOT_DIR}/rpm.info"
 
-DATE=`date "+%Y%m%d%H%M%S"`
-KVERS=`make kernelversion`
-make -j 8 rpm-pkg DEBEMAIL='christoph.paasch@gmail.com' DEBFULLNAME='Christoph Paasch' LOCALVERSION=.mptcp KDEB_PKGVERSION=${DATE}
+cd "${ROOT_DIR}/mptcp"
 
-# Install with 'dnf install kernel-4.1.34.mptcp' - may need to remove a kernel
+if ! git describe --tags --exact-match; then
+        echo "Not building a tag. Press Enter to continue."
+        read
+fi
 
-## Create meta-package
-#rm -Rf linux-mptcp
-#
-#mkdir linux-mptcp
-#mkdir linux-mptcp/DEBIAN
-#chmod -R a-s linux-mptcp
-#ctrl="linux-mptcp/DEBIAN/control"
-#touch $ctrl
-#
-#echo "Package: linux-mptcp" >> $ctrl
-#echo "Version: ${DATE}" >> $ctrl
-#echo "Section: main" >> $ctrl
-#echo "Priority: optional" >> $ctrl
-#echo "Architecture: all" >> $ctrl
-#echo "Depends: linux-headers-${KVERS}, linux-image-${KVERS}" >> $ctrl
-#echo "Installed-Size:" >> $ctrl
-#echo "Maintainer: Christoph Paasch <christoph.paasch@gmail.com>" >> $ctrl
-#echo "Description: A meta-package for linux-mptcp" >> $ctrl
-#
-#dpkg --build linux-mptcp
-#
-#mv linux-mptcp.deb linux-mptcp_${DATE}_all.deb
+KVERS=$(make kernelversion)
+KVERS_MAJ=$(echo "${KVERS}" | cut -d. -f1-2)
+CONFIG_KVERS="config-${KVERS_MAJ}"
+CONFIG_PATH="${SCRIPT_DIR}/${CONFIG_KVERS}"
 
+[ "${CONFIG}" = "y" ] && cp -v "${CONFIG_PATH}" .config
+
+echo "Building ${KVERS} - Tag: $(git describe --tags)" | tee "${RPM_INFO}"
+make -j 8 rpm-pkg LOCALVERSION=.mptcp
+
+[ "${CONFIG}" = "y" ] && cp -v .config "${CONFIG_PATH}"
+
+echo "Install with 'dnf install kernel-${KVERS}.mptcp'" | tee -a "${RPM_INFO}"
+# we may need to remove a kernel
