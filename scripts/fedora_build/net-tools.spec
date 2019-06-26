@@ -1,13 +1,13 @@
 
 Summary: Basic networking tools
 Name: net-tools
-Version: mptcp_v0.94
+Version: mptcp_v0.95
 Release: 1
 License: GPLv2+
 Group: System Environment/Base
 URL: https://github.com/multipath-tcp/net-tools/
 
-Source0: https://github.com/multipath-tcp/net-tools/archive/mptcp_v0.94.zip
+Source0: https://github.com/multipath-tcp/net-tools/archive/mptcp_v0.95.zip
 Source1: net-tools-config.h
 Source2: net-tools-config.make
 
