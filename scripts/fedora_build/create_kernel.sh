@@ -9,7 +9,7 @@ CONFIG=${MY_CONFIG:-"n"}
 # Unmodifiabled variables
 INIT_DIR="${PWD}"
 SCRIPT_DIR="${INIT_DIR}/$(dirname "${0}")"
-RPM_INFO="${MY_ROOT_DIR}/rpm.info"
+RPM_INFO="${ROOT_DIR}/rpm.info"
 
 cd "${ROOT_DIR}/mptcp"
 

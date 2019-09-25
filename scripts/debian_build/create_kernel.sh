@@ -11,7 +11,7 @@ CONFIG=${MY_CONFIG:-"n"}
 # Unmodifiabled variables
 INIT_DIR="${PWD}"
 SCRIPT_DIR="${INIT_DIR}/$(dirname "${0}")"
-DEB_INFO="${MY_ROOT_DIR}/deb.info"
+DEB_INFO="${ROOT_DIR}/deb.info"
 
 cd "${ROOT_DIR}"
 rm -fv *.deb
