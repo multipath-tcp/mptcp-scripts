@@ -1,0 +1,53 @@
+#!/bin/sh
+#default_gw="192.168.1.1"
+debug_log="/var/log/mptcp-$interface.log"
+rt_tables="/etc/iproute2/rt_tables"
+
+echo "=============================" >$debug_log
+echo "$interface" >>$debug_log
+echo "=============================" >>$debug_log
+printenv >>$debug_log
+echo "--------------" >>$debug_log
+
+# skip non-eth interface (might want to comment out)
+case $interface in eth*) ;; *)
+    ip link set dev $interface multipath off
+    echo "Skipped non-eth $interface" >>$debug_log
+    exit
+esac
+
+echo "Configuring $interface" >>$debug_log
+
+# make sure that table exists before adding rules
+if [ `grep $interface $rt_tables | wc -l` -eq 0 ]; then
+    table_num=`cat $rt_tables | wc -l`
+    echo "$table_num	$interface" >>$rt_tables
+fi
+
+if $if_up; then
+    echo "Configuring MPTCP on $interface" >>$debug_log
+
+    ip link set dev $interface multipath on
+    ip route add table $interface $new_network_number/$new_subnet_mask dev $interface scope link
+    ip route add table $interface default via $new_routers dev $interface
+    ip rule add table $interface from $new_ip_address
+
+    # explicit global gateway (disable all default gw in dhcpcd.conf)
+    if [ $default_gw ]; then
+        if [ $new_routers = $default_gw ]; then
+            ip route add default via $new_routers dev $interface
+            echo "Added $interface as global default gateway" >>$debug_log
+        else
+            ip route del default via $new_routers dev $interface
+            echo "Removed $interface as global default gateway" >>$debug_log
+        fi
+    fi
+else
+    echo "Deconfiguring MPTCP on $interface" >>$debug_log
+
+    ip rule del table $interface
+    ip route flush table $interface
+    ip link set dev $interface multipath off
+fi
+
+echo "Done!" >>$debug_log

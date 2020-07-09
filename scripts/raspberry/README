@@ -1,0 +1,3 @@
+Raspberry Pi uses dhcpcd by default, so scripts found under /etc/network
+will normally be ignored. Instead, add a hook in /lib/dhcpcd/dhcpcd-hooks
+to autoconfigure network interfaces for MPTCP.
