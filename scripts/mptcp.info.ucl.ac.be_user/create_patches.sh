@@ -24,7 +24,8 @@ cd $HOME/mtcp/
 git fetch stable
 
 repo 'mptcp_trunk'
-repo 'mptcp_v0.90'
-repo 'mptcp_v0.91'
+for i in $(seq 91 96); do
+	repo "mptcp_v0.${i}"
+done
 
 git checkout mptcp_trunk
