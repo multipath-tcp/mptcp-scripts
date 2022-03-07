@@ -6,7 +6,7 @@ DISTRIB="$(basename "$(dirname "${PWD}/docker_build_kernel.sh")" | cut -d_ -f1)"
 ./create_docker_kernel.sh "${DISTRIB}"
 
 # Run docker
-MY_ROOT_DIR=${1:-"$(grep ${SUDO_USER:-"${USERNAME}"} /etc/passwd | cut -d: -f6)"}
+MY_ROOT_DIR=${MY_ROOT_DIR:-"$(grep ${SUDO_USER:-"${USERNAME}"} /etc/passwd | cut -d: -f6)"}
 
 EXTRA_ARGS=("-v" "${MY_ROOT_DIR}:${MY_ROOT_DIR}:rw")
 
