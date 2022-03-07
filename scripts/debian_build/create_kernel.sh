@@ -33,7 +33,7 @@ TAG="$(git describe --tags)"
 [ "${CONFIG}" = "y" ] && cp -v "${CONFIG_PATH}" .config
 
 echo "Building ${KVERS} - Tag: ${TAG}" | tee "${DEB_INFO}"
-make -j 8 deb-pkg DEBEMAIL="${EMAIL}" DEBFULLNAME="${FULLNAME}" LOCALVERSION=.mptcp KDEB_PKGVERSION="${DATE}"
+make -j $(nproc) deb-pkg DEBEMAIL="${EMAIL}" DEBFULLNAME="${FULLNAME}" LOCALVERSION=.mptcp KDEB_PKGVERSION="${DATE}"
 
 [ "${CONFIG}" = "y" ] && cp -v .config "${CONFIG_PATH}"
 

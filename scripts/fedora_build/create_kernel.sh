@@ -26,7 +26,7 @@ CONFIG_PATH="${SCRIPT_DIR}/${CONFIG_KVERS}"
 [ "${CONFIG}" = "y" ] && cp -v "${CONFIG_PATH}" .config
 
 echo "Building ${KVERS} - Tag: $(git describe --tags)" | tee "${RPM_INFO}"
-make -j 8 rpm-pkg LOCALVERSION=.mptcp
+make -j $(nproc) rpm-pkg LOCALVERSION=.mptcp
 
 [ "${CONFIG}" = "y" ] && cp -v .config "${CONFIG_PATH}"
 
