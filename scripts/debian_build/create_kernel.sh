@@ -23,7 +23,7 @@ if ! git describe --tags --exact-match; then
 	read
 fi
 
-DATE=$(date "+%Y%m%d%H%M%S")
+DATE=$(date "+%Y%m%d%H%M%S")-1
 KVERS=$(make kernelversion)
 KVERS_MAJ=$(echo "${KVERS}" | cut -d. -f1-2)
 CONFIG_KVERS="config-${KVERS_MAJ}"
@@ -33,6 +33,7 @@ TAG="$(git describe --tags)"
 [ "${CONFIG}" = "y" ] && cp -v "${CONFIG_PATH}" .config
 
 echo "Building ${KVERS} - Tag: ${TAG}" | tee "${DEB_INFO}"
+rm -f modules.builtin.modinfo
 make -j $(nproc) deb-pkg DEBEMAIL="${EMAIL}" DEBFULLNAME="${FULLNAME}" LOCALVERSION=.mptcp KDEB_PKGVERSION="${DATE}"
 
 [ "${CONFIG}" = "y" ] && cp -v .config "${CONFIG_PATH}"
