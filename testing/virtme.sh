@@ -57,6 +57,7 @@ git fetch https://github.com/matttbe/packetdrill_mptcp mptcp_v0.96
 git switch -c mptcp FETCH_HEAD
 ./configure
 make -j"$(nproc)" -l"$(nproc)"
+make clean all
 
 cd "${KERNEL_SRC}"
 EOF
