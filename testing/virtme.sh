@@ -62,6 +62,8 @@ cd "${KERNEL_SRC}"
 EOF
 
 if [ -x ./.virtme_run.sh ]; then
+	rm -rf arch/x86/include/generated/ include/generated include/config .config
+
 	INPUT_BUILD_SKIP_PERF=1 \
 		INPUT_BUILD_SKIP_SELFTESTS=1 \
 		INPUT_BUILD_SKIP_PACKETDRILL=1 \
