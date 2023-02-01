@@ -52,8 +52,10 @@ git switch -c mptcp_v0.96 FETCH_HEAD
 make -j"$(nproc)" -l"$(nproc)" clean all install
 
 cd /opt/packetdrill/gtests/net/packetdrill
-git fetch https://github.com/multipath-tcp/packetdrill_mptcp master
-git switch -c mptcp FETCH_HEAD
+if [ "${INPUT_PACKETDRILL_NO_SYNC}" != 1 ]; then
+	git fetch https://github.com/multipath-tcp/packetdrill_mptcp master
+	git switch -c mptcp FETCH_HEAD
+fi
 ./configure
 make -j"$(nproc)" -l"$(nproc)"
 make clean all
@@ -69,14 +71,17 @@ if [ -x ./.virtme_run.sh ]; then
 	INPUT_BUILD_SKIP_PERF=1 \
 		INPUT_BUILD_SKIP_SELFTESTS=1 \
 		INPUT_BUILD_SKIP_PACKETDRILL=1 \
+		VIRTME_PACKETDRILL_PATH="${VIRTME_PACKETDRILL_PATH}" \
 			./.virtme_run.sh "${@}"
 else
 	docker run \
 		-v "${PWD}:${PWD}:rw" \
+		${VIRTME_PACKETDRILL_PATH:+-v "${VIRTME_PACKETDRILL_PATH}:/opt/packetdrill:rw"} \
 		-w "${PWD}" \
 		-e INPUT_BUILD_SKIP_PERF=1 \
 		-e INPUT_BUILD_SKIP_SELFTESTS=1 \
 		-e INPUT_BUILD_SKIP_PACKETDRILL=1 \
+		-e INPUT_PACKETDRILL_NO_SYNC=${VIRTME_PACKETDRILL_PATH:+1} \
 		--privileged \
 		--rm \
 		-it \
