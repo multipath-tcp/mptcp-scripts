@@ -62,7 +62,9 @@ cd "${KERNEL_SRC}"
 EOF
 
 if [ -x ./.virtme_run.sh ]; then
-	rm -rf arch/x86/include/generated/ include/generated include/config .config
+	# rm -rf arch/x86/include/generated/ include/generated include/config .config
+	# make -C tools/objtool clean
+	# git clean -dx -e "*.patch" -e ".*" -e patches -f
 
 	INPUT_BUILD_SKIP_PERF=1 \
 		INPUT_BUILD_SKIP_SELFTESTS=1 \
