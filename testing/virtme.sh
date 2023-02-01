@@ -52,8 +52,7 @@ git switch -c mptcp_v0.96 FETCH_HEAD
 make -j"$(nproc)" -l"$(nproc)" clean all install
 
 cd /opt/packetdrill/gtests/net/packetdrill
-#git fetch https://github.com/multipath-tcp/packetdrill_mptcp master
-git fetch https://github.com/matttbe/packetdrill_mptcp mptcp_v0.96
+git fetch https://github.com/multipath-tcp/packetdrill_mptcp master
 git switch -c mptcp FETCH_HEAD
 ./configure
 make -j"$(nproc)" -l"$(nproc)"
