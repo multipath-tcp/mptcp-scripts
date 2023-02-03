@@ -18,6 +18,7 @@ rm -fv *.deb
 
 cd "${ROOT_DIR}/mptcp"
 
+git config --global --add safe.directory "${PWD}"
 if ! git describe --tags --exact-match; then
 	echo "Not building a tag. Press Enter to continue."
 	read
